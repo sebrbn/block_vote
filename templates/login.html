@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>BlockVote Login</title>
+    <style>
+        body { font-family: sans-serif; padding: 50px; text-align: center; }
+        .box { border: 1px solid #ccc; padding: 20px; max-width: 400px; margin: auto; border-radius: 10px; }
+        input { padding: 10px; width: 80%; margin: 10px 0; }
+        button { padding: 10px 20px; background: #007bff; color: white; border: none; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="box">
+        <h2> Student Authentication</h2>
+        
+        {% if not otp_sent %}
+        <form action="/send_otp" method="POST">
+            <p>Enter your University Register No:</p>
+            <input type="text" name="userid" placeholder="e.g. U2303175" required>
+            <br>
+            <button type="submit">Send OTP</button>
+        </form>
+        {% endif %}
+
+        {% if otp_sent %}
+        <div style="background: #e3f2fd; padding: 10px; margin-bottom: 15px;">
+            ✅ <strong>OTP Sent!</strong> Check the server terminal.
+        </div>
+        <form action="/verify_otp" method="POST">
+            <p>Enter the 4-digit code sent to your email:</p>
+            <input type="text" name="otp" placeholder="e.g. 1234" required>
+            <button type="submit">Verify & Login</button>
+        </form>
+        {% endif %}
+        
+        {% if error %}
+        <p style="color: red;">❌ {{ error }}</p>
+        {% endif %}
+    </div>
+</body>
+</html>

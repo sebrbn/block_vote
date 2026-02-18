@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head><title>Cast Vote</title></head>
+<body>
+    <h2>Your Secure Token:</h2>
+    <code style="background:#eee; padding:5px;">{{ token }}</code>
+    <hr>
+    <h3>Select Candidate:</h3>
+    <form action="/cast_vote" method="POST">
+        <select name="candidate">
+            <option value="Alice">Alice</option>
+            <option value="Bob">Bob</option>
+        </select>
+        <button type="submit">Sign & Vote (Runs Proof of Work)</button>
+    </form>
+</body>
+</html>

@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Live Election Ledger</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; background: #f4f4f4; }
+        .block { background: white; padding: 15px; margin-bottom: 15px; border-left: 5px solid #28a745; box-shadow: 2px 2px 5px #ccc; }
+        pre { background: #eee; padding: 10px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h2> Blockchain Ledger (Immutable Record)</h2>
+    {% for block in chain %}
+        <div class="block">
+            <h3>Block #{{ block.index }}</h3>
+            <p><strong>Timestamp:</strong> {{ block.timestamp }}</p>
+            <p><strong>Nonce:</strong> {{ block.nonce }}</p>
+            <p><strong>Previous Hash:</strong> {{ block.previous_hash }}</p>
+            <h4>Transactions (Votes):</h4>
+            <pre>{{ block.transactions | tojson(indent=2) }}</pre>
+        </div>
+    {% endfor %}
+</body>
+</html>

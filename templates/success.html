@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Vote Mined Successfully</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; padding: 50px; background-color: #f9fff9; }
+        .success-box { 
+            border: 2px solid #28a745; 
+            background: white; 
+            padding: 30px; 
+            border-radius: 10px; 
+            display: inline-block; 
+            max-width: 600px;
+            box-shadow: 0px 5px 15px rgba(0,0,0,0.1);
+        }
+        h1 { color: #28a745; margin-bottom: 10px; }
+        .details { text-align: left; background: #eee; padding: 15px; border-radius: 5px; font-family: monospace; margin-top: 20px; word-break: break-all; }
+        .btn {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 10px 20px;
+            background: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+        .btn:hover { background: #0056b3; }
+    </style>
+</head>
+<body>
+
+    <div class="success-box">
+        <h1> Vote Mined & Confirmed!</h1>
+        <p>Your anonymous vote has been cryptographically signed and added to the blockchain.</p>
+        
+        <div class="details">
+            <p><strong>Block Index:</strong> {{ block.index }}</p>
+            <p><strong>Nonce Found:</strong> {{ block.nonce }}</p>
+            <p><strong>Previous Hash:</strong> {{ block.previous_hash }}</p>
+            <p><strong>Timestamp:</strong> {{ block.timestamp }}</p>
+        </div>
+
+        <br>
+        <a href="/dashboard" class="btn">Vote Again (Demo Mode)</a>
+        <a href="/explorer" class="btn" style="background:#6c757d;">View Blockchain</a>
+        <a href="/logout" class="btn" style="background:#dc3545;">Logout</a>
+    </div>
+
+</body>
+</html>

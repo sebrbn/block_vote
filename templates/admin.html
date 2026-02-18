@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head><title>Admin Dashboard</title></head>
+<body>
+    <h2> Admin Security (Shamir's Secret Sharing)</h2>
+    
+    <h3>Status: <span style="color: {{ 'green' if active else 'red' }}">
+        {{ 'ACTIVE' if active else 'LOCKED' }}
+    </span></h3>
+
+    {% if not shares %}
+        <form action="/initialize_keys" method="POST">
+            <p>The Master Private Key has not been split yet.</p>
+            <button type="submit">⚡ Split Key into 5 Shares</button>
+        </form>
+    {% else %}
+        <p><strong>Key has been split into 5 shares:</strong></p>
+        <ul>
+            {% for share in shares %}
+                <li>Admin {{ share[0] }}: <code style="background:#eee">{{ share[1] }}</code></li>
+            {% endfor %}
+        </ul>
+        
+        <hr>
+        
+        <form action="/reconstruct_key" method="POST">
+            <p>Simulate 3 Admins combining their parts to unlock the election:</p>
+            <button type="submit">🔓 Reconstruct Key & Start Election</button>
+        </form>
+    {% endif %}
+    
+    <br><br>
+    <a href="/">Back to Voter Login</a>
+</body>
+</html>
