@@ -1,9 +1,16 @@
 import secrets
 import hashlib
 
-if __name__ == "__main__":
+def generate_token():
+    """Generates a unique 256-bit voting token."""
     vote_token = secrets.randbits(256)
-    hashed_token = hashlib.sha256(str(vote_token).encode()).hexdigest()
+    return str(vote_token)
 
-    print("Vote Token:", vote_token)
-    print("SHA-256 Hash:", hashed_token)
+def hash_token(token):
+    """Returns the SHA-256 hash of the token."""
+    return hashlib.sha256(token.encode()).hexdigest()
+
+if __name__ == "__main__":
+    t = generate_token()
+    print("Token:", t)
+    print("Hash:", hash_token(t))

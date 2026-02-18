@@ -1,23 +1,26 @@
 import hashlib
 import time
 
-difficulty = 4
-prefix = "0" * difficulty
-nonce = 0
+def mine(block_data, difficulty=4):
+    """
+    Mines a block by finding a nonce that satisfies the difficulty target.
+    """
+    prefix = "0" * difficulty
+    nonce = 0
+    print(f"⛏️  Mining block with difficulty {difficulty}...")
+    
+    start_time = time.time()
+    
+    while True:
+        text = f"{block_data}{nonce}".encode()
+        hash_value = hashlib.sha256(text).hexdigest()
 
-start_time = time.time()
+        if hash_value.startswith(prefix):
+            end_time = time.time()
+            print(f"✅ Found Nonce: {nonce} ({round(end_time - start_time, 2)}s)")
+            return nonce
+        
+        nonce += 1
 
-while True:
-    block_data = f"previous_hash|votes|{nonce}".encode()
-    hash_value = hashlib.sha256(block_data).hexdigest()
-
-    if hash_value.startswith(prefix):
-        break
-    nonce += 1
-
-end_time = time.time()
-
-print("Nonce Found:", nonce)
-print("Block Hash:", hash_value)
-print("Time Taken:", round(end_time - start_time, 2), "seconds")
-print("✅ Block mined successfully")
+if __name__ == "__main__":
+    mine("test_block_data", 4)

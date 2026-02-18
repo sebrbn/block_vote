@@ -25,13 +25,3 @@ def reconstruct_secret(shares):
                 den = (den * (xi - xj)) % PRIME
         secret = (secret + yi * num * pow(den, -1, PRIME)) % PRIME
     return secret
-
-if __name__ == "__main__":
-    MASTER_SECRET = 987654321
-    shares = generate_shares(MASTER_SECRET)
-
-    recovered = reconstruct_secret(shares[:3])
-    print("Recovered Secret:", recovered)
-
-    assert recovered == MASTER_SECRET
-    print("✅ Admin server started (threshold satisfied)")
