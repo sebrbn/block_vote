@@ -11,10 +11,13 @@ This document provides a comprehensive guide to setting up, testing, and underst
 2.  **Start the Nodes**:
     -   **On Laptop A**: Run `python app.py -p 5000`. (Allow through Windows Firewall if prompted).
     -   **On Laptop B**: Run `python app.py -p 5000`. (Since they are different devices, they can use the same port).
-3.  **The Handshake**: 
-    -   Go to Laptop A's Admin UI (`http://192.168.1.5:5000/admin`).
-    -   Register Laptop B's node: `192.168.1.12:5000`.
-    -   Repeat the process on Laptop B to register Laptop A.
+### Phase 1: The Network Setup (Node A, B, C)
+1.  **Launch**: Each Admin runs `python app.py -p 5000` on their own device.
+2.  **The Handshake**: 
+    -   Admin A goes to their dashboard and registers Admin B and C.
+    -   Admin B registers Admin A and C.
+    -   (Only one node needs to "know" another to begin, but full peering ensures best redundancy).
+3.  **Registration Format**: Enter the IPv4 address and port, e.g., `192.168.1.15:5000`.
 
 ### Phase 2: Testing Distributed Shamir's
 1.  Check that the election is **LOCKED** on both laptops.

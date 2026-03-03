@@ -7,6 +7,7 @@ import sys
 import argparse
 import threading
 import time
+import socket
 
 # IMPORT YOUR ENCRYPTED MODULES (Assuming they are in the same directory)
 import vote_token_generator
@@ -36,11 +37,66 @@ MY_SHARE = ( (PORT % 10) + 1, 123456789 + (PORT % 10) )
 
 # Helper: Broadcast to all registered peers
 def broadcast(endpoint, data):
-    for node in vote_chain.nodes:
+    for node in list(vote_chain.nodes):
         try:
             requests.post(f"http://{node}{endpoint}", json=data, timeout=1)
         except:
             print(f"Failed to broadcast to {node}")
+
+# ----------------------------------------------------------------
+# AUTO-DISCOVERY (P2P ZERO-CONF) - SECURED
+# ----------------------------------------------------------------
+DISCOVERY_PORT = 5005
+DISCOVERY_MAGIC = "BLOCKVOTE_NODE"
+SHARED_SECRET = os.getenv('ADMIN_TOKEN', 'admin-secret-123')
+
+def discovery_broadcast_task():
+    """Broadcasts this node's presence with a shared secret."""
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+    message = f"{DISCOVERY_MAGIC}:{PORT}:{SHARED_SECRET}".encode()
+    print(f"[*] Secured discovery broadcaster started on port {DISCOVERY_PORT}")
+    while True:
+        try:
+            sock.sendto(message, ('<broadcast>', DISCOVERY_PORT))
+            time.sleep(10)
+        except Exception as e:
+            print(f"[!] Broadcast error: {e}")
+            time.sleep(10)
+
+def discovery_listener_task():
+    """Listens for authorized nodes on the local network."""
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.bind(('', DISCOVERY_PORT))
+    print(f"[*] Secured discovery listener active on port {DISCOVERY_PORT}")
+    while True:
+        try:
+            data, addr = sock.recvfrom(1024)
+            message = data.decode()
+            if message.startswith(DISCOVERY_MAGIC):
+                parts = message.split(':')
+                if len(parts) == 3 and parts[2] == SHARED_SECRET:
+                    remote_port = parts[1]
+                    remote_node = f"{addr[0]}:{remote_port}"
+                    if remote_node not in vote_chain.nodes and remote_node != f"127.0.0.1:{PORT}":
+                        print(f"[*] Discovered authorized node: {remote_node}")
+                        vote_chain.register_node(remote_node)
+                        # Handshake (with token)
+                        try:
+                            my_ip = socket.gethostbyname(socket.gethostname())
+                            requests.post(f"http://{remote_node}/nodes/register", 
+                                          json={"nodes": [f"{my_ip}:{PORT}"], "is_handshake": True}, 
+                                          timeout=2)
+                        except:
+                            pass
+                else:
+                    print(f"[!] Unauthorized discovery attempt from {addr[0]}")
+        except Exception as e:
+            print(f"[!] Listener error: {e}")
+
+# Start discovery threads
+threading.Thread(target=discovery_broadcast_task, daemon=True).start()
+threading.Thread(target=discovery_listener_task, daemon=True).start()
 
 # ----------------------------------------------------------------
 # AUTO-MINER BACKGROUND TASK
@@ -153,10 +209,24 @@ def cast_vote():
 @app.route('/nodes/register', methods=['POST'])
 def register_nodes():
     nodes = request.json.get('nodes')
+    is_handshake = request.json.get('is_handshake', False)
+    
     if nodes is None:
         return "Error: Please supply a valid list of nodes", 400
+        
     for node in nodes:
-        vote_chain.register_node(node)
+        if node != f"127.0.0.1:{PORT}":
+            vote_chain.register_node(node)
+            # If this wasn't already a back-and-forth handshake, initiate one
+            if not is_handshake:
+                try:
+                    my_ip = socket.gethostbyname(socket.gethostname())
+                    requests.post(f"http://{node}/nodes/register", 
+                                  json={"nodes": [f"{my_ip}:{PORT}"], "is_handshake": True}, 
+                                  timeout=2)
+                except:
+                    pass
+                    
     return jsonify({'message': 'New nodes have been added', 'total_nodes': list(vote_chain.nodes)}), 201
 
 @app.route('/transactions/receive', methods=['POST'])

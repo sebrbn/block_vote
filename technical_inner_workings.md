@@ -63,3 +63,16 @@ The ledger is a decentralized, immutable sequence of blocks.
 ### Scenario D: Data Modification
 - **Attack**: Changing a single vote in Block #5.
 - **Mitigation**: Changing any data in Block #5 changes its hash. Since Block #6 contains `previous_hash_5`, Block #6 becomes invalid. This cascades to the end of the chain, making the fraud immediately visible to all peers.
+
+---
+
+## 🚀 5. Secured Discovery & Portability
+
+### Zero-Config Security
+- **The Protocol**: Nodes use UDP broadcasting on Port 5005.
+- **Shared Secret**: Every broadcast packet contains a payload: `BLOCKVOTE_NODE:{PORT}:{ADMIN_TOKEN}`.
+- **Defense**: The `discovery_listener_task` explicitly ignores any packet that does not contain the correct `ADMIN_TOKEN`. Even if an attacker knows the "Magic String," they cannot join the network without the shared secret.
+
+### Deployment Ease
+- **requirements.txt**: Standardizes the environment (Flask, Requests).
+- **start_admin.bat**: A Windows wrapper that handles dependency installation, port selection, and environment variable configuration in a single click.
