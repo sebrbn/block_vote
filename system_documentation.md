@@ -66,4 +66,32 @@ Admins run the Python software and manage the network infrastructure.
 ## Part 3: Architecture Technicalities
 - **Genesis Block**: All nodes share a hardcoded Genesis timestamp to ensure hash consistency across the network.
 - **Auto-Miner**: A background daemon thread manages the mempool based on transaction count and time.
-- **P2P Sync**: Nodes uses the "Longest Valid Chain" rule to resolve conflicts during synchronization.
+- **P2P Sync**: Nodes use the "Longest Valid Chain" rule to resolve conflicts during synchronization.
+- **Candidate Propagation**: The global candidate list is synced across all nodes via `/p2p/sync_candidates`.
+
+---
+
+## Part 4: Security & Attack Mitigation
+
+### 1. Unauthorized Admin Access
+- **Risk**: Attackers accessing `/admin` to add fake candidates or mine blocks.
+- **Mitigation**: 
+    - Administrative routes are protected by a required `ADMIN_TOKEN`.
+    - Sensitive operations (like starting the election) require a **3-node threshold consensus** via Shamir's Secret Sharing. Single-node compromise is insufficient.
+
+### 2. Double Voting (Sybil/Replay Attacks)
+- **Risk**: A voter trying to submit multiple votes.
+- **Mitigation**: 
+    - The `Blockchain` logic rejects any transaction where the unique `token` is already present in the block ledger OR the current mempool.
+    - Each vote is cryptographically verified against the authority's signature.
+
+### 3. Peer Spoofing & Network Integrity
+- **Risk**: An attacker spinning up a rogue node to broadcast fake blocks.
+- **Mitigation**: 
+    - **Proof of Work (PoW)**: Every block must solve a difficult math problem (hash prefix `0000`). Forging a block requires immense computational power.
+    - **Longest Chain Rule**: Distributed consensus ensures the network follows the chain with the most cumulative work.
+
+### 4. Candidate Integrity
+- **Risk**: Voters voting for non-existent candidates.
+- **Mitigation**:
+    - The server-side `/cast_vote` logic explicitly validates the `vote_choice` against the official `candidates` list synced across all nodes.

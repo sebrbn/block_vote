@@ -23,6 +23,7 @@ app.secret_key = os.urandom(24)
 vote_chain = Blockchain()
 is_election_active = False
 valid_shares_collected = set() # To track consensus on Shamir shares
+candidates = ["Alice", "Bob"]  # Default list
 
 # Define this node's identity
 parser = argparse.ArgumentParser()
@@ -105,7 +106,15 @@ def verify_otp():
 def dashboard():
     if 'user_id' not in session:
         return redirect(url_for('home'))
-    return render_template('dashboard.html', user=session['user_id'], election_active=is_election_active)
+    return render_template('dashboard.html', user=session['user_id'], election_active=is_election_active, candidates=candidates)
+
+@app.route('/generate_token', methods=['POST'])
+def generate_token():
+    if not is_election_active:
+        return "Election is locked.", 403
+    token = vote_token_generator.generate_token()
+    session['token'] = token
+    return render_template('vote.html', token=token, candidates=candidates)
 
 @app.route('/cast_vote', methods=['POST'])
 def cast_vote():
@@ -113,7 +122,12 @@ def cast_vote():
         return "Election is locked.", 403
         
     vote_choice = request.form['candidate']
-    token = session.get('token') or vote_token_generator.generate_token()
+    if vote_choice not in candidates:
+        return "Invalid candidate.", 400
+
+    token = session.get('token')
+    if not token:
+        return "Missing token. Please generate one first.", 400
     
     # Custom Crypto Logic (Blind Signatures)
     blinded_vote, r_factor = blind_signature.blind_message(vote_choice)
@@ -178,7 +192,29 @@ def consensus():
     return jsonify({'message': 'Our chain is authoritative', 'chain': vote_chain.chain}), 200
 
 # ----------------------------------------------------------------
-# 3. SHAMIR DISTRIBUTED ACTIVATION
+# 3. CANDIDATE MANAGEMENT
+# ----------------------------------------------------------------
+@app.route('/admin/add_candidate', methods=['POST'])
+@admin_required
+def add_candidate():
+    new_candidate = request.form['name']
+    if new_candidate and new_candidate not in candidates:
+        candidates.append(new_candidate)
+        broadcast('/p2p/sync_candidates', {'candidates': candidates})
+        return redirect(url_for('admin_dashboard', token=request.form.get('admin_token') or request.args.get('token')))
+    return "Invalid candidate or already exists", 400
+
+@app.route('/p2p/sync_candidates', methods=['POST'])
+def sync_candidates():
+    global candidates
+    remote_candidates = request.json.get('candidates')
+    if remote_candidates:
+        # Merge or replace (here we replace for the simplest P2P propagation)
+        candidates = list(set(candidates + remote_candidates))
+    return "Candidates synced", 200
+
+# ----------------------------------------------------------------
+# 4. SHAMIR DISTRIBUTED ACTIVATION
 # ----------------------------------------------------------------
 @app.route('/admin/submit_share', methods=['POST'])
 def submit_share():
@@ -205,7 +241,7 @@ def sync_shares():
 
 @app.route('/admin')
 def admin_dashboard():
-    return render_template('admin.html', active=is_election_active, shares_count=len(valid_shares_collected), peers=list(vote_chain.nodes))
+    return render_template('admin.html', active=is_election_active, shares_count=len(valid_shares_collected), peers=list(vote_chain.nodes), candidates=candidates)
 
 @app.route('/mine', methods=['POST'])
 def manual_mine():
@@ -219,6 +255,20 @@ def manual_mine():
 @app.route('/explorer')
 def explorer():
     return render_template('explorer.html', chain=vote_chain.chain)
+
+@app.route('/results')
+def results():
+    """Aggregates all votes from the blockchain and displays live results."""
+    votes = {}
+    for block in vote_chain.chain:
+        for tx in block['transactions']:
+            candidate = tx['vote'].get('candidate')
+            if candidate:
+                votes[candidate] = votes.get(candidate, 0) + 1
+    
+    # Calculate total for percentages
+    total_votes = sum(votes.values())
+    return render_template('results.html', votes=votes, total=total_votes)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', debug=True, port=PORT, use_reloader=False) # Reloader can spawn double threads

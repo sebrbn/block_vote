@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Live Election Results</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f2f5;
+            margin: 0;
+            padding: 40px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 600px;
+        }
+
+        h1 {
+            color: #1a73e8;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .candidate-row {
+            margin-bottom: 25px;
+        }
+
+        .candidate-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #3c4043;
+        }
+
+        .progress-container {
+            background-color: #e8eaed;
+            border-radius: 8px;
+            height: 16px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            background-color: #34a853;
+            height: 100%;
+            border-radius: 8px;
+            transition: width 1s ease-in-out;
+        }
+
+        .stats {
+            text-align: center;
+            margin-top: 40px;
+            color: #70757a;
+            border-top: 1px solid #e8eaed;
+            padding-top: 20px;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #1a73e8;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+
+        .btn:hover {
+            background-color: #1557b0;
+        }
+
+        .empty {
+            text-align: center;
+            padding: 40px;
+            color: #5f6368;
+            font-style: italic;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>📊 Live Election Results</h1>
+
+        {% if votes %}
+        {% for candidate, count in votes.items() %}
+        {% set percentage = (count / total * 100) | round(1) if total > 0 else 0 %}
+        <div class="candidate-row">
+            <div class="candidate-info">
+                <span>{{ candidate }}</span>
+                <span>{{ count }} Votes ({{ percentage }}%)</span>
+            </div>
+            <div class="progress-container">
+                <div class="progress-bar" style="width: {{ percentage }}%"></div>
+            </div>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="empty">
+            <p>No votes have been mined into the blockchain yet.</p>
+            <p>The results will appear here once the first block is packaged.</p>
+        </div>
+        {% endif %}
+
+        <div class="stats">
+            <p><strong>Total Valid Votes:</strong> {{ total }}</p>
+            <p style="font-size: 12px;">This information is aggregated directly from the immutable blockchain ledger.
+            </p>
+            <a href="/dashboard" class="btn">Back to Dashboard</a>
+            <a href="/explorer" class="btn" style="background:#5f6368;">View Ledger</a>
+        </div>
+    </div>
+</body>
+
+</html>

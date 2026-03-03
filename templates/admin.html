@@ -68,9 +68,19 @@
         <p>Connected Peers: <code>{{ peers }}</code></p>
     </div>
 
-    <!-- 3. MINING -->
+    <!-- 3. CANDIDATE MANAGEMENT -->
     <div class="box">
-        <h3>3. Distributed Mining</h3>
+        <h3>3. Candidate Management</h3>
+        <p>Current Candidates: <strong>{{ candidates | join(', ') }}</strong></p>
+        <form action="/admin/add_candidate" method="POST">
+            <input type="text" name="name" placeholder="New Candidate Name" required>
+            <button type="submit">Add Candidate</button>
+        </form>
+    </div>
+
+    <!-- 4. MINING -->
+    <div class="box">
+        <h3>4. Distributed Mining</h3>
         <p>Mine transactions broadcasted by voters or other nodes.</p>
         <form action="/mine" method="POST">
             <button type="submit" style="background-color: #f0ad4e; border: 1px solid #eea236;">⛏️ Mine Pending
