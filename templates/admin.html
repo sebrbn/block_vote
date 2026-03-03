@@ -1,35 +1,99 @@
 <!DOCTYPE html>
 <html>
-<head><title>Admin Dashboard</title></head>
-<body>
-    <h2> Admin Security (Shamir's Secret Sharing)</h2>
-    
-    <h3>Status: <span style="color: {{ 'green' if active else 'red' }}">
-        {{ 'ACTIVE' if active else 'LOCKED' }}
-    </span></h3>
 
-    {% if not shares %}
-        <form action="/initialize_keys" method="POST">
-            <p>The Master Private Key has not been split yet.</p>
-            <button type="submit">⚡ Split Key into 5 Shares</button>
+<head>
+    <title>Admin Dashboard - P2P Voting</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 0 20px;
+        }
+
+        .box {
+            border: 1px solid #ccc;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+
+        .active {
+            color: green;
+            font-weight: bold;
+        }
+
+        .locked {
+            color: red;
+            font-weight: bold;
+        }
+
+        button {
+            cursor: pointer;
+            padding: 8px 15px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Admin Control Panel</h1>
+
+    <div class="box">
+        <h3>Election Status:
+            <span class="{{ 'active' if active else 'locked' }}">
+                {{ 'ACTIVE' if active else 'LOCKED' }}
+            </span>
+        </h3>
+        <p>Valid Shares Collected: <strong>{{ shares_count }} / 3</strong></p>
+    </div>
+
+    <!-- 1. SHAMIR SHARE SUBMISSION -->
+    <div class="box">
+        <h3>1. Submit Cryptographic Share</h3>
+        <p>Enter your node's share to unlock the election (e.g., <code>1,123456790</code>).</p>
+        <form action="/admin/submit_share" method="POST">
+            <input type="text" name="share" placeholder="x,y" required>
+            <button type="submit">Submit Share</button>
         </form>
-    {% else %}
-        <p><strong>Key has been split into 5 shares:</strong></p>
-        <ul>
-            {% for share in shares %}
-                <li>Admin {{ share[0] }}: <code style="background:#eee">{{ share[1] }}</code></li>
-            {% endfor %}
-        </ul>
-        
-        <hr>
-        
-        <form action="/reconstruct_key" method="POST">
-            <p>Simulate 3 Admins combining their parts to unlock the election:</p>
-            <button type="submit">🔓 Reconstruct Key & Start Election</button>
+    </div>
+
+    <!-- 2. NODE REGISTRATION -->
+    <div class="box">
+        <h3>2. P2P Node Management</h3>
+        <p>Register neighboring Admin nodes on your local network.</p>
+        <form id="nodeForm">
+            <input type="text" id="nodeIp" placeholder="e.g., 192.168.1.10:5000" required>
+            <button type="button" onclick="registerNode()">Register Node</button>
         </form>
-    {% endif %}
-    
-    <br><br>
-    <a href="/">Back to Voter Login</a>
+        <p>Connected Peers: <code>{{ peers }}</code></p>
+    </div>
+
+    <!-- 3. MINING -->
+    <div class="box">
+        <h3>3. Distributed Mining</h3>
+        <p>Mine transactions broadcasted by voters or other nodes.</p>
+        <form action="/mine" method="POST">
+            <button type="submit" style="background-color: #f0ad4e; border: 1px solid #eea236;">⛏️ Mine Pending
+                Votes</button>
+        </form>
+    </div>
+
+    <hr>
+    <a href="/">Back to Voter Login</a> | <a href="/explorer">View Blockchain</a>
+
+    <script>
+        function registerNode() {
+            const nodeUrl = document.getElementById('nodeIp').value;
+            fetch('/nodes/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nodes: [nodeUrl] })
+            }).then(response => {
+                if (response.ok) location.reload();
+                else alert('Registration failed.');
+            });
+        }
+    </script>
 </body>
+
 </html>

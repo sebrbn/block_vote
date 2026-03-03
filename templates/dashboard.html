@@ -1,16 +1,34 @@
 <!DOCTYPE html>
 <html>
-<head><title>Dashboard</title></head>
+
+<head>
+    <title>Voter Dashboard</title>
+</head>
+
 <body>
-    <h2>Welcome, {{ user }}</h2>
-    <p>You are authenticated via OTP.</p>
-    <hr>
+    <h2>Voter Dashboard</h2>
+    <p>Welcome, <strong>{{ user }}</strong>!</p>
+
+    <h3>Election Status:
+        {% if election_active %}
+        <span style="color:green">ACTIVE</span>
+        {% else %}
+        <span style="color:red">LOCKED (Waiting for Admin Consensus)</span>
+        {% endif %}
+    </h3>
+
+    {% if election_active %}
     <form action="/generate_token" method="POST">
-        <button type="submit" style="padding:15px; background:green; color:white;">
-             Generate Token & Vote
-        </button>
+        <button type="submit" style="padding:10px 20px; font-size:16px;">🗳️ Get Voting Token</button>
     </form>
+    {% else %}
+    <p>Please wait until the administration has unlocked the election using Shamir's Secret Sharing.</p>
+    {% endif %}
+
     <br>
+    <hr>
+    <a href="/explorer">View Blockchain Explorer</a><br><br>
     <a href="/logout">Logout</a>
 </body>
+
 </html>

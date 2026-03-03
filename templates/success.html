@@ -1,50 +1,90 @@
 <!DOCTYPE html>
 <html>
+
 <head>
-    <title>Vote Mined Successfully</title>
+    <title>Vote Submitted</title>
     <style>
-        body { font-family: sans-serif; text-align: center; padding: 50px; background-color: #f9fff9; }
-        .success-box { 
-            border: 2px solid #28a745; 
-            background: white; 
-            padding: 30px; 
-            border-radius: 10px; 
-            display: inline-block; 
-            max-width: 600px;
-            box-shadow: 0px 5px 15px rgba(0,0,0,0.1);
+        body {
+            font-family: sans-serif;
+            text-align: center;
+            padding: 50px;
+            background-color: #f4f7f6;
         }
-        h1 { color: #28a745; margin-bottom: 10px; }
-        .details { text-align: left; background: #eee; padding: 15px; border-radius: 5px; font-family: monospace; margin-top: 20px; word-break: break-all; }
+
+        .success-box {
+            border: 2px solid #2ecc71;
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            display: inline-block;
+            max-width: 500px;
+            box-shadow: 0px 10px 30px rgba(0, 0, 0, 0.05);
+        }
+
+        h1 {
+            color: #2ecc71;
+            margin-bottom: 20px;
+        }
+
+        p {
+            color: #34495e;
+            font-size: 18px;
+            line-height: 1.6;
+        }
+
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #2ecc71;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 2s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
         .btn {
             display: inline-block;
-            margin-top: 20px;
-            padding: 10px 20px;
-            background: #007bff;
+            margin-top: 30px;
+            padding: 12px 25px;
+            background: #3498db;
             color: white;
             text-decoration: none;
-            border-radius: 5px;
+            border-radius: 6px;
+            transition: background 0.3s;
         }
-        .btn:hover { background: #0056b3; }
+
+        .btn:hover {
+            background: #2980b9;
+        }
     </style>
 </head>
+
 <body>
 
     <div class="success-box">
-        <h1> Vote Mined & Confirmed!</h1>
-        <p>Your anonymous vote has been cryptographically signed and added to the blockchain.</p>
-        
-        <div class="details">
-            <p><strong>Block Index:</strong> {{ block.index }}</p>
-            <p><strong>Nonce Found:</strong> {{ block.nonce }}</p>
-            <p><strong>Previous Hash:</strong> {{ block.previous_hash }}</p>
-            <p><strong>Timestamp:</strong> {{ block.timestamp }}</p>
-        </div>
+        <h1>✅ Vote Successfully Cast!</h1>
+        <p>Your anonymous vote has been signed and broadcast to the network mempool.</p>
 
-        <br>
-        <a href="/dashboard" class="btn">Vote Again (Demo Mode)</a>
-        <a href="/explorer" class="btn" style="background:#6c757d;">View Blockchain</a>
-        <a href="/logout" class="btn" style="background:#dc3545;">Logout</a>
+        <div class="loader"></div>
+
+        <p><strong>Status:</strong> Awaiting Distributed Mining</p>
+        <p style="font-size: 14px; color: #7f8c8d;">The network auto-miner will package your vote into the next block
+            within 60 seconds (or after 3 votes are polled).</p>
+
+        <a href="/dashboard" class="btn">Back to Dashboard</a>
+        <a href="/explorer" class="btn" style="background:#95a5a6;">Monitor Blockchain</a>
     </div>
 
 </body>
+
 </html>

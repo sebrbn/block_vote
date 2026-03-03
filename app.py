@@ -1,31 +1,85 @@
-from flask import Flask, render_template, request, session, redirect, url_for
+from flask import Flask, render_template, request, session, redirect, url_for, jsonify
 from blockchain import Blockchain
+import requests
 import random
+import os
+import sys
+import argparse
+import threading
 import time
 
-# IMPORT YOUR EXISTING ALGORITHMS
+# IMPORT YOUR ENCRYPTED MODULES (Assuming they are in the same directory)
 import vote_token_generator
 import blind_signature
 import rsa_signature
 import shamir_secret_sharing 
 
 app = Flask(__name__)
-app.secret_key = 'super_secret_key'
-
-# Initialize the Blockchain
-vote_chain = Blockchain()
-
-# GLOBAL VARIABLES
-admin_shares = []
-is_election_active = False
-otp_storage = {}  # Stores OTPs temporarily
+app.secret_key = os.urandom(24)
 
 # ----------------------------------------------------------------
-# 1. AUTHENTICATION ROUTES (OTP SYSTEM)
+# P2P NETWORK CONFIGURATION & STATE
+# ----------------------------------------------------------------
+vote_chain = Blockchain()
+is_election_active = False
+valid_shares_collected = set() # To track consensus on Shamir shares
+
+# Define this node's identity
+parser = argparse.ArgumentParser()
+parser.add_argument("-p", "--port", type=int, default=5000, help="Port to run the node on")
+args = parser.parse_args()
+PORT = args.port
+
+# In a real setup, each Admin would have their own unique share
+MY_SHARE = ( (PORT % 10) + 1, 123456789 + (PORT % 10) ) 
+
+# Helper: Broadcast to all registered peers
+def broadcast(endpoint, data):
+    for node in vote_chain.nodes:
+        try:
+            requests.post(f"http://{node}{endpoint}", json=data, timeout=1)
+        except:
+            print(f"Failed to broadcast to {node}")
+
+# ----------------------------------------------------------------
+# AUTO-MINER BACKGROUND TASK
+# ----------------------------------------------------------------
+def auto_miner_task():
+    """Background thread that mines blocks based on mempool size or time."""
+    print(f"[*] Auto-miner thread started on Node {PORT}")
+    while True:
+        try:
+            time.sleep(10) # Run check every 10 seconds
+            
+            if not is_election_active:
+                continue
+
+            pending_count = len(vote_chain.pending_transactions)
+            last_block_time = vote_chain.last_block['timestamp']
+            time_since_last = time.time() - last_block_time
+
+            # TRIGGERS:
+            # 1. Threshold: 3 or more transactions
+            # 2. Time: More than 60 seconds since last block
+            if pending_count > 0:
+                if pending_count >= 3 or time_since_last >= 60:
+                    print(f"[*] Triggering auto-mine: {pending_count} txs, {int(time_since_last)}s since last block.")
+                    block = vote_chain.mine_pending_transactions()
+                    if block:
+                        print(f"[*] Successfully mined block {block['index']}. Broadcasting...")
+                        broadcast('/blocks/receive', block)
+        except Exception as e:
+            print(f"[!] Auto-miner error: {e}")
+
+# Start the miner thread
+miner_thread = threading.Thread(target=auto_miner_task, daemon=True)
+miner_thread.start()
+
+# ----------------------------------------------------------------
+# 1. VOTER ENDPOINTS (THIN CLIENT)
 # ----------------------------------------------------------------
 @app.route('/')
 def home():
-    # If already logged in, go to dashboard
     if 'user_id' in session:
         return redirect(url_for('dashboard'))
     return render_template('login.html', otp_sent=False)
@@ -33,124 +87,138 @@ def home():
 @app.route('/send_otp', methods=['POST'])
 def send_otp():
     user_id = request.form['userid']
-    
-    # Generate Mock OTP
     otp = random.randint(1000, 9999)
     session['temp_user_id'] = user_id
-    otp_storage[user_id] = otp
-    
-    # SIMULATE EMAIL SENDING
-    print(f"\n{'='*40}")
-    print(f" [EMAIL SENT] OTP for {user_id} is >> {otp} <<")
-    print(f"{'='*40}\n")
-    
+    session['mock_otp'] = str(otp)
+    print(f"\n[OTP] Node {PORT} -> {user_id}: {otp}\n")
     return render_template('login.html', otp_sent=True)
 
 @app.route('/verify_otp', methods=['POST'])
 def verify_otp():
     user_otp = request.form['otp']
-    user_id = session.get('temp_user_id')
-    
-    if user_id in otp_storage and str(otp_storage[user_id]) == user_otp:
-        session['user_id'] = user_id
-        # Cleanup OTP
-        del otp_storage[user_id]
+    if user_otp == session.get('mock_otp'):
+        session['user_id'] = session.get('temp_user_id')
         return redirect(url_for('dashboard'))
-    else:
-        return render_template('login.html', otp_sent=True, error="Invalid OTP! Check terminal.")
+    return render_template('login.html', otp_sent=True, error="Invalid OTP.")
 
-@app.route('/logout')
-def logout():
-    session.clear()
-    return redirect(url_for('home'))
-
-# ----------------------------------------------------------------
-# 2. VOTER DASHBOARD & TOKEN GENERATION
-# ----------------------------------------------------------------
 @app.route('/dashboard')
 def dashboard():
     if 'user_id' not in session:
         return redirect(url_for('home'))
-    return render_template('dashboard.html', user=session['user_id'])
+    return render_template('dashboard.html', user=session['user_id'], election_active=is_election_active)
 
-@app.route('/generate_token', methods=['POST'])
-def generate_token():
-    if not is_election_active:
-         return "<h1> Election Not Started!</h1><p>Admin must reconstruct keys first.</p><a href='/dashboard'>Back</a>"
-
-    token = vote_token_generator.generate_token() 
-    session['token'] = token
-    return render_template('vote.html', token=token)
-
-# ----------------------------------------------------------------
-# 3. VOTING & MINING
-# ----------------------------------------------------------------
 @app.route('/cast_vote', methods=['POST'])
 def cast_vote():
-    vote_choice = request.form['candidate']
-    token = session.get('token')
-
-    if not token:
-        return redirect(url_for('home'))
-
-    # 1. Blind Signature
-    blinded_vote, r_factor = blind_signature.blind_message(vote_choice)
-    
-    # 2. Admin Sign (Simulated)
-    signed_blinded = blind_signature.sign_blinded_message(blinded_vote)
-    
-    # 3. Unblind
-    signature = blind_signature.unblind_signature(signed_blinded, r_factor)
-
-    # 4. Add to Blockchain Pool
-    vote_chain.add_transaction(token, {
-        'candidate': vote_choice,
-        'signature': signature
-    })
-
-    # 5. Mine Block (Proof of Work)
-    mined_block = vote_chain.mine_pending_transactions()
-
-    return render_template('success.html', block=mined_block)
-
-# ----------------------------------------------------------------
-# 4. ADMIN & SHAMIR'S SECRET SHARING
-# ----------------------------------------------------------------
-@app.route('/admin')
-def admin_page():
-    return render_template('admin.html', shares=admin_shares, active=is_election_active)
-
-@app.route('/initialize_keys', methods=['POST'])
-def initialize_keys():
-    global admin_shares
-    secret = 123456789
-    admin_shares = shamir_secret_sharing.generate_shares(secret, total_shares=5, threshold=3)
-    return redirect(url_for('admin_page'))
-
-@app.route('/reconstruct_key', methods=['POST'])
-def reconstruct_key():
-    global is_election_active
-    if len(admin_shares) < 3:
-        return "Not enough shares!"
+    if not is_election_active:
+        return "Election is locked.", 403
         
-    recovered_secret = shamir_secret_sharing.reconstruct_secret(admin_shares[:3])
+    vote_choice = request.form['candidate']
+    token = session.get('token') or vote_token_generator.generate_token()
     
-    if recovered_secret == 123456789:
-        is_election_active = True
-        return "<h1>✅ Key Reconstructed! Election Started.</h1><a href='/admin'>Back</a>"
-    else:
-        return "❌ Failed."
+    # Custom Crypto Logic (Blind Signatures)
+    blinded_vote, r_factor = blind_signature.blind_message(vote_choice)
+    signed_blinded = blind_signature.sign_blinded_message(blinded_vote)
+    signature = blind_signature.unblind_signature(signed_blinded, r_factor)
+    
+    vote_data = {'candidate': vote_choice, 'signature': signature}
+    
+    # 1. Add locally to mempool
+    added = vote_chain.add_transaction(token, vote_data)
+    
+    # 2. Broadcast transaction to all other Admin Nodes
+    if added:
+        broadcast('/transactions/receive', {'token': token, 'vote': vote_data})
+        # Mining now happens asynchronously in the background thread
+        return render_template('success.html', status="Vote Received")
+        
+    return "Duplicate transaction or error.", 400
 
 # ----------------------------------------------------------------
-# 5. BLOCKCHAIN EXPLORER
+# 2. P2P & CONSENSUS ENDPOINTS (ADMIN TO ADMIN)
 # ----------------------------------------------------------------
+@app.route('/nodes/register', methods=['POST'])
+def register_nodes():
+    nodes = request.json.get('nodes')
+    if nodes is None:
+        return "Error: Please supply a valid list of nodes", 400
+    for node in nodes:
+        vote_chain.register_node(node)
+    return jsonify({'message': 'New nodes have been added', 'total_nodes': list(vote_chain.nodes)}), 201
+
+@app.route('/transactions/receive', methods=['POST'])
+def receive_transaction():
+    data = request.get_json()
+    vote_chain.add_transaction(data['token'], data['vote'])
+    return "Transaction received", 201
+
+@app.route('/blocks/receive', methods=['POST'])
+def receive_block():
+    block = request.get_json()
+    if block['index'] == len(vote_chain.chain) + 1:
+        if vote_chain.valid_chain(vote_chain.chain + [block]):
+            vote_chain.chain.append(block)
+            # Remove transactions from mempool that were included in the block
+            block_tokens = [tx['token'] for tx in block['transactions']]
+            vote_chain.pending_transactions = [tx for tx in vote_chain.pending_transactions if tx['token'] not in block_tokens]
+            return "Block added", 201
+    return "Block rejected or out of sync", 400
+
 @app.route('/chain')
-def get_chain():
-    return {'chain': vote_chain.chain, 'length': len(vote_chain.chain)}
+def full_chain():
+    return jsonify({
+        'chain': vote_chain.chain,
+        'length': len(vote_chain.chain)
+    }), 200
+
+@app.route('/nodes/resolve')
+def consensus():
+    replaced = vote_chain.resolve_conflicts()
+    if replaced:
+        return jsonify({'message': 'Our chain was replaced', 'new_chain': vote_chain.chain}), 200
+    return jsonify({'message': 'Our chain is authoritative', 'chain': vote_chain.chain}), 200
+
+# ----------------------------------------------------------------
+# 3. SHAMIR DISTRIBUTED ACTIVATION
+# ----------------------------------------------------------------
+@app.route('/admin/submit_share', methods=['POST'])
+def submit_share():
+    global is_election_active
+    share_input = request.form['share']
+    try:
+        share = tuple(map(int, share_input.split(',')))
+        valid_shares_collected.add(share)
+        broadcast('/p2p/sync_shares', {'share': share})
+        if len(valid_shares_collected) >= 3:
+            is_election_active = True
+        return redirect(url_for('admin_dashboard'))
+    except:
+        return "Invalid Share Format", 400
+
+@app.route('/p2p/sync_shares', methods=['POST'])
+def sync_shares():
+    global is_election_active
+    share_data = request.json.get('share')
+    valid_shares_collected.add(tuple(share_data))
+    if len(valid_shares_collected) >= 3:
+        is_election_active = True
+    return "Share synced", 200
+
+@app.route('/admin')
+def admin_dashboard():
+    return render_template('admin.html', active=is_election_active, shares_count=len(valid_shares_collected), peers=list(vote_chain.nodes))
+
+@app.route('/mine', methods=['POST'])
+def manual_mine():
+    """Manual trigger still available in Admin dashboard."""
+    block = vote_chain.mine_pending_transactions()
+    if block:
+        broadcast('/blocks/receive', block)
+        return "Block mined and broadcasted!"
+    return "No transactions to mine."
 
 @app.route('/explorer')
 def explorer():
     return render_template('explorer.html', chain=vote_chain.chain)
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    app.run(host='0.0.0.0', debug=True, port=PORT, use_reloader=False) # Reloader can spawn double threads
