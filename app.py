@@ -15,7 +15,16 @@ import blind_signature
 import rsa_signature
 import shamir_secret_sharing 
 
-app = Flask(__name__)
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
+
+app = Flask(__name__, template_folder=resource_path('templates'))
 app.secret_key = os.urandom(24)
 
 # ----------------------------------------------------------------
