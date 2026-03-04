@@ -79,7 +79,6 @@ The ledger is a decentralized, immutable sequence of blocks.
 ### Deployment Ease
 - **admin_node.exe**: The entire system is bundled into a single binary. It includes an embedded Python runtime and all templates, allowing for "Zero-Install" deployment.
 - **Integrated Tooling**: The binary includes a CLI mode (`--sign`) to handle cryptographic operations without external dependencies.
-- **start_admin.bat**: A Windows wrapper remains available for developers who wish to run from source with automated dependency handling.
 
 ---
 
