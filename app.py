@@ -41,6 +41,11 @@ candidates = ["Alice", "Bob"]  # Default list
 def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
+        # Security Upgrade: Only allow access from the local machine (Admin's PC)
+        # request.remote_addr will be '127.0.0.1' if accessed locally
+        if request.remote_addr not in ['127.0.0.1', 'localhost']:
+            return "403 Forbidden: Admin Panel is restricted to local access only.", 403
+            
         if not session.get('is_admin'):
             return redirect(url_for('admin_login_page'))
         return f(*args, **kwargs)
