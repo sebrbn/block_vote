@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+build/
+dist/
+*.spec
+*.log
+.env
+.flaskenv
+venv/
+.vscode/
+.idea/
+tmp/
+*.tmp
