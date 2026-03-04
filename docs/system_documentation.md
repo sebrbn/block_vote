@@ -9,20 +9,14 @@ This document provides a comprehensive guide to setting up, testing, and underst
 ### Phase 1: The Network Setup
 1.  **Find the IPs**: On Admin **Laptop A** and Admin **Laptop B**, open Command Prompt and type `ipconfig`. Note down their IPv4 addresses (e.g., `192.168.1.5` and `192.168.1.12`).
 ### Phase 1: The Network Setup
-1.  **Launch**: Each Admin runs `admin_node.exe` (or `python app.py`) on their own device.
+1.  **Launch**: Each Admin runs `admin_node.exe` on their own device.
 2.  **Access the Admin Panel**: 
     - Note: The Admin Panel is **locked to the local machine** for security. You must access it at `http://localhost:5000/admin/login` on the computer running the node.
 3.  **The Handshake**: 
     - Admin A goes to their dashboard and registers Admin B and C.
     - Admin B registers Admin A and C.
-    - (The system also supports **Auto-Discovery**: nodes on the same Wi-Fi will find each other automatically).
+    - (The system supports **Auto-Discovery**: nodes on the same Wi-Fi will find each other automatically).
 4.  **Registration Format**: Enter the IPv4 address and port, e.g., `192.168.1.15:5000`.
-1.  **Launch**: Each Admin runs `python app.py -p 5000` on their own device.
-2.  **The Handshake**: 
-    -   Admin A goes to their dashboard and registers Admin B and C.
-    -   Admin B registers Admin A and C.
-    -   (Only one node needs to "know" another to begin, but full peering ensures best redundancy).
-3.  **Registration Format**: Enter the IPv4 address and port, e.g., `192.168.1.15:5000`.
 
 ### Phase 2: Testing Distributed Shamir's
 1.  Check that the election is **LOCKED** on both laptops.
