@@ -98,3 +98,23 @@ Admins run the Python software and manage the network infrastructure.
 - **Risk**: Voters voting for non-existent candidates.
 - **Mitigation**:
     - The server-side `/cast_vote` logic explicitly validates the `vote_choice` against the official `candidates` list synced across all nodes.
+
+---
+
+## Part 5: Single-File Sharing (Portable Executable)
+
+For the most convenient setup, the system can be bundled into a single standalone `.exe` that requires **no Python installation** on the voter's or admin's computer.
+
+### 1. Generating the Executable
+- Run `python bundle_app.py` on your development machine.
+- Once finished, a folder named `dist/` will be created.
+- Inside, you will find `admin_node.exe`.
+
+### 2. Sharing the Node
+- Simply copy `admin_node.exe` to a USB drive or send it via a file-sharing service.
+- **The other Admin only needs this one file.** They do not need the project folder, the Python source code, or even a Python installation.
+
+### 3. Running the Node
+- Double-click `admin_node.exe`.
+- It will automatically extract itself, install its internal server, and start discovery.
+- **Note**: The first launch may take 10-15 seconds as it prepares the environment.

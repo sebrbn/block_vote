@@ -76,3 +76,21 @@ The ledger is a decentralized, immutable sequence of blocks.
 ### Deployment Ease
 - **requirements.txt**: Standardizes the environment (Flask, Requests).
 - **start_admin.bat**: A Windows wrapper that handles dependency installation, port selection, and environment variable configuration in a single click.
+
+---
+
+## Part 6: Zero-Trust Security Model
+
+To ensure the highest integrity, the system now enforces a "Zero-Trust" policy between voters, admins, and the blockchain ledger.
+
+### 1. RSA Challenge-Response (Admin)
+Static passwords are prone to brute-force attacks. Our system generates a unique `auth-XXXX` challenge per session. The Admin must provide an RSA signature of this challenge. Since the public key is known and the private key never leaves the Admin's device, this prevents unauthorized access even if the "Admin Token" is leaked.
+
+### 2. Blind Signature Enforcement
+A vote transition is only valid if:
+- The token is 256-bit and unique.
+- The token is accompanied by an RSA signature from the Election Authority.
+This prevents "padding" the ballot box with fake tokens, as only the authorized Admin can issue a valid signature.
+
+### 3. Threshold Consensus (Shamir)
+The master secret required to unlock the election is split using Shamir's $(3, 5)$ scheme. This ensures that no single rogue admin can start or stop the election arbitrarily. It requires the cooperation of a trusted majority.

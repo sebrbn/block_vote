@@ -3,6 +3,7 @@ import json
 import time
 from urllib.parse import urlparse
 import proof_of_work  
+import blind_signature
 
 class Blockchain:
     def __init__(self):
@@ -42,19 +43,31 @@ class Blockchain:
         self.chain.append(block)
         return block
 
-    def add_transaction(self, token, vote_data):
-        # Prevent double voting: Check chain and mempool
+    def add_transaction(self, token, vote_data, signature):
+        """
+        Adds a transaction to the mempool if:
+        1. Token hasn't voted before.
+        2. Signature is valid (Blind RSA verification).
+        """
+        # 1. Verify Signature
+        if not blind_signature.verify_signature(token, signature):
+            print(f"[!] Invalid Authority Signature for token {token[:10]}...")
+            return False
+
+        # 2. Prevent double voting: Check chain and mempool
         for block in self.chain:
             for tx in block['transactions']:
                 if tx['token'] == token:
                     return False
         for tx in self.pending_transactions:
             if tx['token'] == token:
-                return False
+                if tx['token'] == token:
+                    return False
                 
         self.pending_transactions.append({
             'token': token,
-            'vote': vote_data
+            'vote': vote_data,
+            'signature': signature
         })
         return True
 

@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, session, redirect, url_for, jsonify
+from functools import wraps
 from blockchain import Blockchain
 import requests
 import random
@@ -10,10 +11,8 @@ import time
 import socket
 
 # IMPORT YOUR ENCRYPTED MODULES (Assuming they are in the same directory)
-import vote_token_generator
-import blind_signature
 import rsa_signature
-import shamir_secret_sharing 
+import blind_signature
 
 def resource_path(relative_path):
     """ Get absolute path to resource, works for dev and for PyInstaller """
@@ -36,6 +35,40 @@ valid_shares_collected = set() # To track consensus on Shamir shares
 candidates = ["Alice", "Bob"]  # Default list
 
 # Define this node's identity
+# ----------------------------------------------------------------
+# CRYPTOGRAPHIC AUTHENTICATION
+# ----------------------------------------------------------------
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not session.get('is_admin'):
+            return redirect(url_for('admin_login_page'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+@app.route('/admin/login', methods=['GET', 'POST'])
+def admin_login_page():
+    if request.method == 'POST':
+        # RSA Signature Authentication
+        # The admin "signs" a challenge string with their private key
+        challenge = session.get('auth_challenge', 'admin-auth-demo')
+        signature = int(request.form.get('signature', '0'))
+        
+        if rsa_signature.verify(challenge, signature):
+            session['is_admin'] = True
+            return redirect(url_for('admin_dashboard'))
+        else:
+            return "Invalid RSA Signature", 401
+            
+    # Generate a challenge
+    session['auth_challenge'] = f"auth-{random.randint(1000, 9999)}"
+    return render_template('admin_login.html', challenge=session['auth_challenge'])
+
+@app.route('/admin/logout')
+def admin_logout():
+    session.pop('is_admin', None)
+    return redirect(url_for('home'))
+
 parser = argparse.ArgumentParser()
 parser.add_argument("-p", "--port", type=int, default=5000, help="Port to run the node on")
 args = parser.parse_args()
@@ -63,6 +96,11 @@ def discovery_broadcast_task():
     """Broadcasts this node's presence with a shared secret."""
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+    # Allow multiple instances on same machine to share discovery port
+    try:
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    except:
+        pass
     message = f"{DISCOVERY_MAGIC}:{PORT}:{SHARED_SECRET}".encode()
     print(f"[*] Secured discovery broadcaster started on port {DISCOVERY_PORT}")
     while True:
@@ -76,6 +114,11 @@ def discovery_broadcast_task():
 def discovery_listener_task():
     """Listens for authorized nodes on the local network."""
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    # Allow multiple instances on same machine to bind to 5005
+    try:
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    except:
+        pass
     sock.bind(('', DISCOVERY_PORT))
     print(f"[*] Secured discovery listener active on port {DISCOVERY_PORT}")
     while True:
@@ -90,12 +133,13 @@ def discovery_listener_task():
                     if remote_node not in vote_chain.nodes and remote_node != f"127.0.0.1:{PORT}":
                         print(f"[*] Discovered authorized node: {remote_node}")
                         vote_chain.register_node(remote_node)
-                        # Handshake (with token)
                         try:
                             my_ip = socket.gethostbyname(socket.gethostname())
-                            requests.post(f"http://{remote_node}/nodes/register", 
-                                          json={"nodes": [f"{my_ip}:{PORT}"], "is_handshake": True}, 
-                                          timeout=2)
+                            # Ensure we don't recursive-register ourselves and cause loops
+                            if remote_node != f"{my_ip}:{PORT}":
+                                requests.post(f"http://{remote_node}/nodes/register", 
+                                              json={"nodes": [f"{my_ip}:{PORT}"], "is_handshake": True}, 
+                                              timeout=2)
                         except:
                             pass
                 else:
@@ -195,22 +239,23 @@ def cast_vote():
         return "Missing token. Please generate one first.", 400
     
     # Custom Crypto Logic (Blind Signatures)
-    blinded_vote, r_factor = blind_signature.blind_message(vote_choice)
-    signed_blinded = blind_signature.sign_blinded_message(blinded_vote)
+    # The Authority (Admin) signs the voter's TOKEN, not their choice.
+    # This allows the token to be verified on-chain without linking to the ID.
+    
+    # FOR DEMO: The server does the full pipeline to show logic
+    blinded_token, r_factor = blind_signature.blind_message(token)
+    signed_blinded = blind_signature.sign_blinded_message(blinded_token)
     signature = blind_signature.unblind_signature(signed_blinded, r_factor)
     
-    vote_data = {'candidate': vote_choice, 'signature': signature}
+    # 1. Add locally to mempool with the unblinded signature of the token
+    added = vote_chain.add_transaction(token, vote_choice, signature)
     
-    # 1. Add locally to mempool
-    added = vote_chain.add_transaction(token, vote_data)
-    
-    # 2. Broadcast transaction to all other Admin Nodes
+    # 2. Broadcast transaction with signature
     if added:
-        broadcast('/transactions/receive', {'token': token, 'vote': vote_data})
-        # Mining now happens asynchronously in the background thread
+        broadcast('/transactions/receive', {'token': token, 'vote': vote_choice, 'signature': signature})
         return render_template('success.html', status="Vote Received")
         
-    return "Duplicate transaction or error.", 400
+    return "Invalid Signature or Double Voting!", 400
 
 # ----------------------------------------------------------------
 # 2. P2P & CONSENSUS ENDPOINTS (ADMIN TO ADMIN)
@@ -241,7 +286,11 @@ def register_nodes():
 @app.route('/transactions/receive', methods=['POST'])
 def receive_transaction():
     data = request.get_json()
-    vote_chain.add_transaction(data['token'], data['vote'])
+    token = data.get('token')
+    vote = data.get('vote')
+    signature = data.get('signature', 0)
+    
+    vote_chain.add_transaction(token, vote, signature)
     return "Transaction received", 201
 
 @app.route('/blocks/receive', methods=['POST'])
@@ -280,7 +329,7 @@ def add_candidate():
     if new_candidate and new_candidate not in candidates:
         candidates.append(new_candidate)
         broadcast('/p2p/sync_candidates', {'candidates': candidates})
-        return redirect(url_for('admin_dashboard', token=request.form.get('admin_token') or request.args.get('token')))
+        return redirect(url_for('admin_dashboard'))
     return "Invalid candidate or already exists", 400
 
 @app.route('/p2p/sync_candidates', methods=['POST'])
@@ -296,6 +345,7 @@ def sync_candidates():
 # 4. SHAMIR DISTRIBUTED ACTIVATION
 # ----------------------------------------------------------------
 @app.route('/admin/submit_share', methods=['POST'])
+@admin_required
 def submit_share():
     global is_election_active
     share_input = request.form['share']
@@ -313,16 +363,20 @@ def submit_share():
 def sync_shares():
     global is_election_active
     share_data = request.json.get('share')
-    valid_shares_collected.add(tuple(share_data))
-    if len(valid_shares_collected) >= 3:
-        is_election_active = True
-    return "Share synced", 200
+    if share_data:
+        valid_shares_collected.add(tuple(share_data))
+        if len(valid_shares_collected) >= 3:
+            is_election_active = True
+        return "Share synced", 200
+    return "Malformed share data", 400
 
 @app.route('/admin')
+@admin_required
 def admin_dashboard():
     return render_template('admin.html', active=is_election_active, shares_count=len(valid_shares_collected), peers=list(vote_chain.nodes), candidates=candidates)
 
 @app.route('/mine', methods=['POST'])
+@admin_required
 def manual_mine():
     """Manual trigger still available in Admin dashboard."""
     block = vote_chain.mine_pending_transactions()
@@ -330,6 +384,15 @@ def manual_mine():
         broadcast('/blocks/receive', block)
         return "Block mined and broadcasted!"
     return "No transactions to mine."
+
+@app.route('/explorer/data')
+def explorer_data():
+    return jsonify({
+        'chain': vote_chain.chain,
+        'peers': list(vote_chain.nodes),
+        'is_active': is_election_active,
+        'candidates': candidates
+    })
 
 @app.route('/explorer')
 def explorer():
