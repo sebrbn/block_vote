@@ -76,11 +76,19 @@ def admin_logout():
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-p", "--port", type=int, default=5000, help="Port to run the node on")
+parser.add_argument("--sign", type=str, help="Sign an auth challenge and exit")
 args = parser.parse_args()
-PORT = args.port
 
-# In a real setup, each Admin would have their own unique share
-MY_SHARE = ( (PORT % 10) + 1, 123456789 + (PORT % 10) ) 
+# NEW: Integrated signing tool
+if args.sign:
+    print(f"\n🔑 GENERATING RSA SIGNATURE FOR: {args.sign}")
+    signature = rsa_signature.sign(args.sign)
+    print(f"\n{'='*40}")
+    print(f"✅ YOUR SIGNATURE:\n{signature}")
+    print(f"{'='*40}\n")
+    sys.exit(0)
+
+PORT = args.port
 
 # Helper: Broadcast to all registered peers
 def broadcast(endpoint, data):
