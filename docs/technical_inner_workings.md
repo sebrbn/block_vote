@@ -58,7 +58,10 @@ The ledger is a decentralized, immutable sequence of blocks.
 
 ### Scenario C: Sybil Attack
 - **Attack**: An attacker spins up 100 fake nodes to flood the network.
-- **Mitigation**: In this system, only **Admins** (Full Nodes) can mine. The identity of Admins is managed via IP-based manual peering or a pre-shared token mechanism, making Sybil attacks expensive/impossible without physical IP control.
+- **Mitigation**: 
+    - **RSA Authentication**: Every node must present a valid RSA signature to participate in administrative actions.
+    - **Localhost Lock**: The high-risk Admin Panel is physically restricted to `127.0.0.1`.
+    - **PoW Cost**: Even if an attacker joins the network, they cannot forge a ledger without solving the Proof-of-Work puzzles, making a Sybil chain-takeover computationally prohibitive.
 
 ### Scenario D: Data Modification
 - **Attack**: Changing a single vote in Block #5.
@@ -74,8 +77,9 @@ The ledger is a decentralized, immutable sequence of blocks.
 - **Defense**: The `discovery_listener_task` explicitly ignores any packet that does not contain the correct `ADMIN_TOKEN`. Even if an attacker knows the "Magic String," they cannot join the network without the shared secret.
 
 ### Deployment Ease
-- **requirements.txt**: Standardizes the environment (Flask, Requests).
-- **start_admin.bat**: A Windows wrapper that handles dependency installation, port selection, and environment variable configuration in a single click.
+- **admin_node.exe**: The entire system is bundled into a single binary. It includes an embedded Python runtime and all templates, allowing for "Zero-Install" deployment.
+- **Integrated Tooling**: The binary includes a CLI mode (`--sign`) to handle cryptographic operations without external dependencies.
+- **start_admin.bat**: A Windows wrapper remains available for developers who wish to run from source with automated dependency handling.
 
 ---
 
@@ -83,8 +87,10 @@ The ledger is a decentralized, immutable sequence of blocks.
 
 To ensure the highest integrity, the system now enforces a "Zero-Trust" policy between voters, admins, and the blockchain ledger.
 
-### 1. RSA Challenge-Response (Admin)
-Static passwords are prone to brute-force attacks. Our system generates a unique `auth-XXXX` challenge per session. The Admin must provide an RSA signature of this challenge. Since the public key is known and the private key never leaves the Admin's device, this prevents unauthorized access even if the "Admin Token" is leaked.
+### 1. RSA Challenge-Response & Localhost Lock
+Static passwords are prone to brute-force attacks. Our system generates a unique `auth-XXXX` challenge per session. The Admin must provide an RSA signature of this challenge using the integrated `--sign` command. 
+
+Furthermore, the **Admin Panel is restricted to the local interface**. This creates a "Physical Presence" requirement: an attacker must have physical access to the Admin's machine to even load the login page. Since the private key never leaves the device, this prevents unauthorized access even if the "Admin Token" is leaked.
 
 ### 2. Blind Signature Enforcement
 A vote transition is only valid if:
