@@ -8,10 +8,15 @@ This document provides a comprehensive guide to setting up, testing, and underst
 
 ### Phase 1: The Network Setup
 1.  **Find the IPs**: On Admin **Laptop A** and Admin **Laptop B**, open Command Prompt and type `ipconfig`. Note down their IPv4 addresses (e.g., `192.168.1.5` and `192.168.1.12`).
-2.  **Start the Nodes**:
-    -   **On Laptop A**: Run `python app.py -p 5000`. (Allow through Windows Firewall if prompted).
-    -   **On Laptop B**: Run `python app.py -p 5000`. (Since they are different devices, they can use the same port).
-### Phase 1: The Network Setup (Node A, B, C)
+### Phase 1: The Network Setup
+1.  **Launch**: Each Admin runs `admin_node.exe` (or `python app.py`) on their own device.
+2.  **Access the Admin Panel**: 
+    - Note: The Admin Panel is **locked to the local machine** for security. You must access it at `http://localhost:5000/admin/login` on the computer running the node.
+3.  **The Handshake**: 
+    - Admin A goes to their dashboard and registers Admin B and C.
+    - Admin B registers Admin A and C.
+    - (The system also supports **Auto-Discovery**: nodes on the same Wi-Fi will find each other automatically).
+4.  **Registration Format**: Enter the IPv4 address and port, e.g., `192.168.1.15:5000`.
 1.  **Launch**: Each Admin runs `python app.py -p 5000` on their own device.
 2.  **The Handshake**: 
     -   Admin A goes to their dashboard and registers Admin B and C.
@@ -79,8 +84,9 @@ Admins run the Python software and manage the network infrastructure.
 ### 1. Unauthorized Admin Access
 - **Risk**: Attackers accessing `/admin` to add fake candidates or mine blocks.
 - **Mitigation**: 
-    - Administrative routes are protected by a required `ADMIN_TOKEN`.
-    - Sensitive operations (like starting the election) require a **3-node threshold consensus** via Shamir's Secret Sharing. Single-node compromise is insufficient.
+    - **Localhost Restriction**: The Admin Panel is code-locked to `127.0.0.1`. It is physically impossible to access the `/admin` routes from another IP on the network.
+    - **RSA Signature**: Administrative routes require a unique RSA signature for every session.
+    - **Consensus**: Sensitive operations (like starting the election) require a **3-node threshold consensus** via Shamir's Secret Sharing.
 
 ### 2. Double Voting (Sybil/Replay Attacks)
 - **Risk**: A voter trying to submit multiple votes.
@@ -118,3 +124,22 @@ For the most convenient setup, the system can be bundled into a single standalon
 - Double-click `admin_node.exe`.
 - It will automatically extract itself, install its internal server, and start discovery.
 - **Note**: The first launch may take 10-15 seconds as it prepares the environment.
+
+---
+
+## Part 6: Administrator RSA Sign-In Guide
+
+To prevent unauthorized access, the Admin Panel uses a **Signature Challenge** instead of a password. Since you are running the `admin_node.exe`, you already have the tool needed to log in.
+
+### Steps to Login:
+1.  **Open the Admin Panel**: Navigate to `http://localhost:5000/admin/login` on the local machine.
+2.  **Get the Challenge**: Copy the challenge string shown (e.g., `auth-1234`).
+3.  **Generate Signature**: Open a new terminal and run:
+    ```bash
+    admin_node.exe --sign auth-1234
+    ```
+    *(If using source code, run `python app.py --sign auth-1234`)*
+4.  **Login**: Copy the resulting signature number and paste it into the browser.
+
+### 🛡️ Why is this better?
+You don't need a separate file or a password. The same executable that runs the server also acts as your "Key". This ensures that only someone who can run commands on the server's machine (physical access) can log in as an Admin.
