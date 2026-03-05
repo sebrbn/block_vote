@@ -3,6 +3,9 @@ from blockchain import Blockchain
 import random
 import time
 import argparse
+import ast        # Safely converts string inputs back to math tuples
+import hashlib    # For Cryptographic Hashing
+import secrets    # For generating high-entropy dynamic keys
 
 # IMPORT YOUR EXISTING ALGORITHMS
 import vote_token_generator
@@ -17,34 +20,28 @@ app.secret_key = 'super_secret_key'
 vote_chain = Blockchain()
 
 # GLOBAL VARIABLES
-admin_shares = []
+generated_shares = []       # Stores the 5 shares for demo purposes (Setup Phase)
+submitted_shares = set()    # Pool to collect shares from different admins
 is_election_active = False
-otp_storage = {}  # Stores OTPs temporarily
+otp_storage = {}            # Stores OTPs temporarily
+stored_secret_hash = None   # NEW: Stores only the hash, never the secret!
 
 # ----------------------------------------------------------------
 # 1. AUTHENTICATION ROUTES (OTP SYSTEM)
 # ----------------------------------------------------------------
 @app.route('/')
 def home():
-    # If already logged in, go to dashboard
     if 'user_id' in session:
         return redirect(url_for('dashboard'))
     return render_template('login.html', otp_sent=False)
 
-@app.route('/network')
-def network_page():
-    return render_template('network.html', port=request.host.split(':')[-1])
-
 @app.route('/send_otp', methods=['POST'])
 def send_otp():
     user_id = request.form['userid']
-    
-    # Generate Mock OTP
     otp = random.randint(1000, 9999)
     session['temp_user_id'] = user_id
     otp_storage[user_id] = otp
     
-    # SIMULATE EMAIL SENDING
     print(f"\n{'='*40}")
     print(f"📧 [EMAIL SENT] OTP for {user_id} is >> {otp} <<")
     print(f"{'='*40}\n")
@@ -58,7 +55,6 @@ def verify_otp():
     
     if user_id in otp_storage and str(otp_storage[user_id]) == user_otp:
         session['user_id'] = user_id
-        # Cleanup OTP
         del otp_storage[user_id]
         return redirect(url_for('dashboard'))
     else:
@@ -98,53 +94,105 @@ def cast_vote():
     if not token:
         return redirect(url_for('home'))
 
-    # 1. Blind Signature
     blinded_vote, r_factor = blind_signature.blind_message(vote_choice)
-    
-    # 2. Admin Sign (Simulated)
     signed_blinded = blind_signature.sign_blinded_message(blinded_vote)
-    
-    # 3. Unblind
     signature = blind_signature.unblind_signature(signed_blinded, r_factor)
 
-    # 4. Add to Blockchain Pool
     vote_chain.add_transaction(token, {
         'candidate': vote_choice,
         'signature': signature
     })
 
-    # 5. Mine Block (Proof of Work)
     mined_block = vote_chain.mine_pending_transactions()
-
     return render_template('success.html', block=mined_block)
 
 # ----------------------------------------------------------------
-# 4. ADMIN & SHAMIR'S SECRET SHARING
+# 4. ADMIN & SHAMIR'S MULTI-SIG WORKFLOW
 # ----------------------------------------------------------------
+@app.route('/setup')
+def setup_page():
+    """Renders the offline setup page"""
+    return render_template('setup.html', generated=generated_shares, active=is_election_active)
+
+@app.route('/generate_setup', methods=['POST'])
+def generate_setup():
+    """Phase 1: Trusted Setup Ceremony (Dynamic Secret)"""
+    global generated_shares, submitted_shares, is_election_active, stored_secret_hash
+    
+    submitted_shares = set()
+    is_election_active = False
+    
+    # Generate a random dynamic secret and ONLY save the hash
+    dynamic_secret = secrets.randbelow(10**12)
+    stored_secret_hash = hashlib.sha256(str(dynamic_secret).encode()).hexdigest()
+    
+    # Split the secret and destroy the original
+    generated_shares = shamir_secret_sharing.generate_shares(dynamic_secret, total_shares=5, threshold=3)
+    
+    return redirect(url_for('setup_page'))
+
 @app.route('/admin')
 def admin_page():
-    return render_template('admin.html', shares=admin_shares, active=is_election_active)
+    """Renders the live election console"""
+    return render_template(
+        'admin.html', 
+        submitted_count=len(submitted_shares), 
+        active=is_election_active,
+        error=None
+    )
 
-@app.route('/initialize_keys', methods=['POST'])
-def initialize_keys():
-    global admin_shares
-    secret = 123456789
-    admin_shares = shamir_secret_sharing.generate_shares(secret, total_shares=5, threshold=3)
-    return redirect(url_for('admin_page'))
-
-@app.route('/reconstruct_key', methods=['POST'])
-def reconstruct_key():
+@app.route('/submit_share', methods=['POST'])
+def submit_share():
+    """Phase 2: Admins submit their individual shares with strict validation"""
     global is_election_active
-    if len(admin_shares) < 3:
-        return "Not enough shares!"
-        
-    recovered_secret = shamir_secret_sharing.reconstruct_secret(admin_shares[:3])
+    error_msg = None
     
-    if recovered_secret == 123456789:
-        is_election_active = True
-        return "<h1>✅ Key Reconstructed! Election Started.</h1><a href='/admin'>Back</a>"
-    else:
-        return "❌ Failed."
+    if is_election_active:
+        return redirect(url_for('admin_page'))
+        
+    share_input = request.form.get('share_input')
+    
+    try:
+        # 1. Parse the input string into a Python object
+        parsed_share = ast.literal_eval(share_input)
+        
+        # 2. Strict Format Check
+        if not (isinstance(parsed_share, tuple) and len(parsed_share) == 2):
+            error_msg = "Invalid format! Must be a tuple like (1, 12345...)"
+            
+        # 3. Cryptographic Verification (Is it a real share?)
+        elif parsed_share not in generated_shares:
+            error_msg = "Fake Share Detected! This share does not belong to the current election."
+            
+        # 4. If it passes all checks, add it to the pool
+        else:
+            submitted_shares.add(parsed_share)
+            
+            # Check threshold
+            if len(submitted_shares) >= 3:
+                shares_list = list(submitted_shares)[:3]
+                recovered_secret = shamir_secret_sharing.reconstruct_secret(shares_list)
+                
+                # Verify the reconstructed secret against our stored hash
+                recovered_hash = hashlib.sha256(str(recovered_secret).encode()).hexdigest()
+                
+                if recovered_hash == stored_secret_hash:
+                    is_election_active = True
+                    print("\n✅ THRESHOLD MET: Hashes match! Election Unlocked!\n")
+                    return redirect(url_for('admin_page'))
+                else:
+                    error_msg = "Critical Error: Key reconstruction failed hash verification."
+                    
+    except Exception as e:
+        error_msg = "Invalid input! Please paste the exact tuple format."
+
+    # If an error occurred, render the page WITH the error message
+    return render_template(
+        'admin.html', 
+        submitted_count=len(submitted_shares), 
+        active=is_election_active,
+        error=error_msg
+    )
 
 # ----------------------------------------------------------------
 # 5. BLOCKCHAIN EXPLORER
@@ -160,42 +208,31 @@ def explorer():
 # ----------------------------------------------------------------
 # 6. P2P NETWORKING ROUTES
 # ----------------------------------------------------------------
+@app.route('/network')
+def network_page():
+    return render_template('network.html', port=request.host.split(':')[-1])
+
 @app.route('/nodes/register', methods=['POST'])
 def register_nodes():
-    """Endpoint for a node to tell us it exists"""
     values = request.get_json()
     nodes = values.get('nodes')
-
     if nodes is None:
         return "Error: Please supply a valid list of nodes", 400
-
     for node in nodes:
         vote_chain.register_node(node)
-
     return {"message": "New nodes have been added", "total_nodes": list(vote_chain.nodes)}, 201
 
 @app.route('/nodes/resolve', methods=['GET'])
 def consensus():
-    """Endpoint to trigger the consensus algorithm and sync the chain"""
     replaced = vote_chain.resolve_conflicts()
-
     if replaced:
-        response = {
-            'message': 'Our chain was replaced by a longer one from the network.',
-            'new_chain': vote_chain.chain
-        }
+        response = {'message': 'Our chain was replaced by a longer one from the network.', 'new_chain': vote_chain.chain}
     else:
-        response = {
-            'message': 'Our chain is authoritative (already up to date).',
-            'chain': vote_chain.chain
-        }
-
+        response = {'message': 'Our chain is authoritative (already up to date).', 'chain': vote_chain.chain}
     return response, 200
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-p', '--port', default=5000, type=int, help='port to listen on')
     args = parser.parse_args()
-    
-    # host='0.0.0.0' allows external connections if you're testing across multiple computers
     app.run(host='0.0.0.0', port=args.port, debug=True)

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Trusted Setup Ceremony</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; padding: 40px; background-color: #2c3e50; color: white; }
+        .container { background: #34495e; padding: 30px; border-radius: 10px; display: inline-block; max-width: 700px; width: 100%; box-shadow: 0px 4px 10px rgba(0,0,0,0.5); text-align: left; }
+        .share-box { background: #111; color: #0f0; padding: 10px; font-family: monospace; border-radius: 5px; overflow-x: auto; font-size: 14px; margin-bottom: 10px; border: 1px solid #555; }
+        button { padding: 12px 24px; border: none; border-radius: 4px; cursor: pointer; color: white; font-weight: bold; background-color: #e74c3c; width: 100%; font-size: 16px; }
+        button:hover { background-color: #c0392b; }
+        .warning { color: #f1c40f; font-size: 14px; margin-bottom: 20px; text-align: center; }
+        a.button-link { display: block; text-align: center; margin-top: 20px; color: #3498db; text-decoration: none; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1 style="text-align: center;">🔐 Trusted Setup Ceremony</h1>
+        <p class="warning">⚠️ In production, this runs on an offline, air-gapped machine.</p>
+
+        <p>Generate the dynamic Master Key and split it into 5 physical shares using Shamir's Secret Sharing. The Master Key will not be stored on the server.</p>
+        
+        <form action="/generate_setup" method="POST">
+            <button type="submit" {% if active %}disabled{% endif %}>GENERATE SHARES</button>
+        </form>
+
+        {% if generated %}
+            <div style="margin-top: 25px;">
+                <h3 style="color: #2ecc71;">✅ Keys Generated Successfully</h3>
+                <p>Distribute these securely to 5 different Admins (Copy them now):</p>
+                {% for share in generated %}
+                    <div class="share-box">{{ share }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <a href="/admin" class="button-link">Go to Live Admin Console ➔</a>
+    </div>
+
+</body>
+</html>
