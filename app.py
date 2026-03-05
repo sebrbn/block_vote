@@ -22,6 +22,7 @@ vote_chain = Blockchain()
 # GLOBAL VARIABLES
 generated_shares = []       # Stores the 5 shares for demo purposes (Setup Phase)
 submitted_shares = set()    # Pool to collect shares from different admins
+submitted_ips = set()       # NEW: To track which IPs have submitted shares (Prevents duplicates)
 is_election_active = False
 otp_storage = {}            # Stores OTPs temporarily
 stored_secret_hash = None   # NEW: Stores only the hash, never the secret!
@@ -117,9 +118,10 @@ def setup_page():
 @app.route('/generate_setup', methods=['POST'])
 def generate_setup():
     """Phase 1: Trusted Setup Ceremony (Dynamic Secret)"""
-    global generated_shares, submitted_shares, is_election_active, stored_secret_hash
+    global generated_shares, submitted_shares, submitted_ips, is_election_active, stored_secret_hash
     
-    submitted_shares = set()
+    submitted_shares.clear()
+    submitted_ips.clear()
     is_election_active = False
     
     # Generate a random dynamic secret and ONLY save the hash
@@ -143,7 +145,7 @@ def admin_page():
 
 @app.route('/submit_share', methods=['POST'])
 def submit_share():
-    """Phase 2: Admins submit their individual shares with strict validation"""
+    """Phase 2: Admins submit their individual shares with strict IP validation"""
     global is_election_active
     error_msg = None
     
@@ -151,29 +153,33 @@ def submit_share():
         return redirect(url_for('admin_page'))
         
     share_input = request.form.get('share_input')
+    client_ip = request.remote_addr  # Grab the device's IP address
     
     try:
-        # 1. Parse the input string into a Python object
         parsed_share = ast.literal_eval(share_input)
         
+        # 1. SECURITY CHECK: Has this device already submitted a share?
+        if client_ip in submitted_ips:
+            error_msg = f"Access Denied: A share was already submitted from this device ({client_ip})."
+            
         # 2. Strict Format Check
-        if not (isinstance(parsed_share, tuple) and len(parsed_share) == 2):
+        elif not (isinstance(parsed_share, tuple) and len(parsed_share) == 2):
             error_msg = "Invalid format! Must be a tuple like (1, 12345...)"
             
         # 3. Cryptographic Verification (Is it a real share?)
         elif parsed_share not in generated_shares:
             error_msg = "Fake Share Detected! This share does not belong to the current election."
             
-        # 4. If it passes all checks, add it to the pool
+        # 4. If it passes all checks, add it to the pool AND record the IP
         else:
             submitted_shares.add(parsed_share)
+            submitted_ips.add(client_ip) # Lock out this IP from submitting again
             
             # Check threshold
             if len(submitted_shares) >= 3:
                 shares_list = list(submitted_shares)[:3]
                 recovered_secret = shamir_secret_sharing.reconstruct_secret(shares_list)
                 
-                # Verify the reconstructed secret against our stored hash
                 recovered_hash = hashlib.sha256(str(recovered_secret).encode()).hexdigest()
                 
                 if recovered_hash == stored_secret_hash:
@@ -186,7 +192,6 @@ def submit_share():
     except Exception as e:
         error_msg = "Invalid input! Please paste the exact tuple format."
 
-    # If an error occurred, render the page WITH the error message
     return render_template(
         'admin.html', 
         submitted_count=len(submitted_shares), 
