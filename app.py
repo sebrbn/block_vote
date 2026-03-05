@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, session, redirect, url_for
 from blockchain import Blockchain
 import random
 import time
+import argparse
 
 # IMPORT YOUR EXISTING ALGORITHMS
 import vote_token_generator
@@ -30,6 +31,10 @@ def home():
         return redirect(url_for('dashboard'))
     return render_template('login.html', otp_sent=False)
 
+@app.route('/network')
+def network_page():
+    return render_template('network.html', port=request.host.split(':')[-1])
+
 @app.route('/send_otp', methods=['POST'])
 def send_otp():
     user_id = request.form['userid']
@@ -41,7 +46,7 @@ def send_otp():
     
     # SIMULATE EMAIL SENDING
     print(f"\n{'='*40}")
-    print(f" [EMAIL SENT] OTP for {user_id} is >> {otp} <<")
+    print(f"📧 [EMAIL SENT] OTP for {user_id} is >> {otp} <<")
     print(f"{'='*40}\n")
     
     return render_template('login.html', otp_sent=True)
@@ -76,7 +81,7 @@ def dashboard():
 @app.route('/generate_token', methods=['POST'])
 def generate_token():
     if not is_election_active:
-         return "<h1> Election Not Started!</h1><p>Admin must reconstruct keys first.</p><a href='/dashboard'>Back</a>"
+         return "<h1>🚫 Election Not Started!</h1><p>Admin must reconstruct keys first.</p><a href='/dashboard'>Back</a>"
 
     token = vote_token_generator.generate_token() 
     session['token'] = token
@@ -152,5 +157,45 @@ def get_chain():
 def explorer():
     return render_template('explorer.html', chain=vote_chain.chain)
 
+# ----------------------------------------------------------------
+# 6. P2P NETWORKING ROUTES
+# ----------------------------------------------------------------
+@app.route('/nodes/register', methods=['POST'])
+def register_nodes():
+    """Endpoint for a node to tell us it exists"""
+    values = request.get_json()
+    nodes = values.get('nodes')
+
+    if nodes is None:
+        return "Error: Please supply a valid list of nodes", 400
+
+    for node in nodes:
+        vote_chain.register_node(node)
+
+    return {"message": "New nodes have been added", "total_nodes": list(vote_chain.nodes)}, 201
+
+@app.route('/nodes/resolve', methods=['GET'])
+def consensus():
+    """Endpoint to trigger the consensus algorithm and sync the chain"""
+    replaced = vote_chain.resolve_conflicts()
+
+    if replaced:
+        response = {
+            'message': 'Our chain was replaced by a longer one from the network.',
+            'new_chain': vote_chain.chain
+        }
+    else:
+        response = {
+            'message': 'Our chain is authoritative (already up to date).',
+            'chain': vote_chain.chain
+        }
+
+    return response, 200
+
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-p', '--port', default=5000, type=int, help='port to listen on')
+    args = parser.parse_args()
+    
+    # host='0.0.0.0' allows external connections if you're testing across multiple computers
+    app.run(host='0.0.0.0', port=args.port, debug=True)

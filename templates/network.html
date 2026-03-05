@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>P2P Network Manager</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; padding: 40px; background-color: #f4f7f6; }
+        .container { 
+            background: white; 
+            padding: 30px; 
+            border-radius: 10px; 
+            display: inline-block; 
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 0px 4px 10px rgba(0,0,0,0.1);
+            text-align: left;
+        }
+        h1 { color: #333; text-align: center; }
+        .section { margin-bottom: 30px; padding-bottom: 20px; border-bottom: 1px solid #eee; }
+        input[type="text"] { width: 70%; padding: 10px; margin-right: 10px; border: 1px solid #ccc; border-radius: 4px; }
+        button { padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; color: white; font-weight: bold; }
+        .btn-blue { background-color: #007bff; }
+        .btn-blue:hover { background-color: #0056b3; }
+        .btn-green { background-color: #28a745; width: 100%; font-size: 16px; margin-top: 10px; }
+        .btn-green:hover { background-color: #218838; }
+        pre { background: #222; color: #0f0; padding: 15px; border-radius: 5px; overflow-x: auto; font-size: 14px; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>🌐 Node Manager (Port {{ port }})</h1>
+        
+        <div class="section">
+            <h3>1. Add a Neighbor Node</h3>
+            <p>Tell this server about another server running on a different port.</p>
+            <input type="text" id="node_url" placeholder="e.g., http://127.0.0.1:5001">
+            <button class="btn-blue" onclick="registerNode()">Connect</button>
+        </div>
+
+        <div class="section">
+            <h3>2. Run Consensus Algorithm</h3>
+            <p>Check neighbor nodes. If they have a longer, valid blockchain, replace ours.</p>
+            <button class="btn-green" onclick="syncChain()">🔄 Sync Blockchain</button>
+        </div>
+
+        <div class="section" style="border-bottom: none;">
+            <h3>System Output Console</h3>
+            <pre id="output">Waiting for action...</pre>
+        </div>
+        
+        <div style="text-align: center;">
+            <a href="/explorer" style="color: #007bff; text-decoration: none;">View Blockchain Explorer</a>
+        </div>
+    </div>
+
+    <script>
+        // Send POST request to register a new node
+        function registerNode() {
+            const nodeUrl = document.getElementById('node_url').value;
+            const outputBox = document.getElementById('output');
+            
+            if(!nodeUrl) {
+                outputBox.innerText = "Error: Please enter a URL first.";
+                return;
+            }
+
+            outputBox.innerText = "Connecting...";
+
+            fetch('/nodes/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nodes: [nodeUrl] })
+            })
+            .then(response => response.json())
+            .then(data => {
+                outputBox.innerText = JSON.stringify(data, null, 4);
+                document.getElementById('node_url').value = ''; // clear input
+            })
+            .catch(error => outputBox.innerText = "Connection Error: " + error);
+        }
+
+        // Send GET request to trigger consensus
+        function syncChain() {
+            const outputBox = document.getElementById('output');
+            outputBox.innerText = "Syncing with network...\n(This might take a second depending on block size)";
+
+            fetch('/nodes/resolve')
+            .then(response => response.json())
+            .then(data => {
+                outputBox.innerText = JSON.stringify(data, null, 4);
+            })
+            .catch(error => outputBox.innerText = "Sync Error: " + error);
+        }
+    </script>
+</body>
+</html>
