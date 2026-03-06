@@ -2,16 +2,21 @@
 <html>
 <head><title>Cast Vote</title></head>
 <body>
-    <h2>Your Secure Token:</h2>
-    <code style="background:#eee; padding:5px;">{{ token }}</code>
-    <hr>
+    <form action="/request_signature" method="POST">
+    <h3>Your Secure Token:</h3>
+    <div style="background:#eee; padding:10px; word-break: break-all;">{{ token }}</div>
+
     <h3>Select Candidate:</h3>
-    <form action="/cast_vote" method="POST">
-        <select name="candidate">
-            <option value="Alice">Alice</option>
-            <option value="Bob">Bob</option>
-        </select>
-        <button type="submit">Sign & Vote (Runs Proof of Work)</button>
-    </form>
+    <select name="candidate" style="padding:10px;">
+        {% for candidate in candidates %}
+            <option value="{{ candidate }}">{{ candidate }}</option>
+        {% endfor %}
+    </select>
+
+    <br><br>
+    <button type="submit" style="padding:10px 20px; background:#007bff; color:white; border:none; cursor:pointer;">
+        1. Request Admin Signature (Blinds Vote)
+    </button>
+</form>
 </body>
 </html>

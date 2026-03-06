@@ -16,7 +16,15 @@
         {% if not otp_sent %}
         <form action="/send_otp" method="POST">
             <p>Enter your University Register No:</p>
-            <input type="text" name="userid" placeholder="e.g. U2303175" required>
+            <input 
+                type="text" 
+                name="userid" 
+                placeholder="e.g. U2303175" 
+                pattern="[Uu][0-9]{7}" 
+                minlength="8" 
+                maxlength="8" 
+                title="UID must adhere to RSET guidelines (e.g., U2303181)."
+                required>
             <br>
             <button type="submit">Send OTP</button>
         </form>
@@ -34,7 +42,7 @@
         {% endif %}
         
         {% if error %}
-        <p style="color: red;">❌ {{ error }}</p>
+        <p style="color: red; font-weight: bold;">❌ {{ error }}</p>
         {% endif %}
     </div>
 </body>

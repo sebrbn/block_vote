@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Live Voter Registry</title>
+    <style>
+        body { font-family: sans-serif; padding: 40px; background-color: #f8f9fa; }
+        .container { max-width: 600px; margin: auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        h2 { text-align: center; color: #333; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background-color: #007bff; color: white; }
+        .status-true { color: #28a745; font-weight: bold; }
+        .status-false { color: #dc3545; font-weight: bold; }
+        .empty { text-align: center; color: #777; font-style: italic; padding: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>📋 Live Voter Registry (Audit Log)</h2>
+        <p style="text-align: center; color: #666;">This portal is restricted to internal network access.</p>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>Student UID</th>
+                    <th>Vote Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if database %}
+                    {% for uid, data in database.items() %}
+                    <tr>
+                        <td><strong>{{ uid }}</strong></td>
+                        <td>
+                            {% if data.voted %}
+                                <span class="status-true">✅ Voted (Locked)</span>
+                            {% else %}
+                                <span class="status-false">⏳ Pending</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="2" class="empty">No students have logged in yet.</td>
+                    </tr>
+                {% endif %}
+            </tbody>
+            
+        </table>
+        <table>
+            <thead>
+    <tr>
+        <th>Student UID</th>
+        <th>Admin Authorization</th> <th>Vote Status</th>
+    </tr>
+</thead>
+
+<tbody>
+    {% if database %}
+        {% for uid, data in database.items() %}
+        <tr>
+            <td><strong>{{ uid }}</strong></td>
+            <td>
+                {% if data.voted %}
+                    <span style="color: #007bff;">🔏 Blind Signature Applied</span>
+                {% else %}
+                    <span style="color: #666;">⏳ Awaiting Auth</span>
+                {% endif %}
+            </td>
+            <td>
+                {% if data.voted %}
+                    <span class="status-true">✅ Voted (Locked)</span>
+                {% else %}
+                    <span class="status-false">⏳ Pending</span>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    {% else %}
+        <tr>
+            <td colspan="3" class="empty">No students have logged in yet.</td>
+        </tr>
+    {% endif %}
+</tbody>
+        </table>
+        
+        
+        <div style="text-align: center; margin-top: 30px;">
+            <a href="/admin" style="text-decoration: none; color: #007bff; font-weight: bold;">← Back to Admin Console</a>
+        </div>
+    </div>
+</body>
+</html>

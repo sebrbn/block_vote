@@ -52,6 +52,48 @@
                     {% elif submitted_count >= 3 %}
                         <div class="progress-fill" style="width: 100%; background-color: #28a745; color: white;">100% UNLOCKED</div>
                     {% endif %}
+
+                    <hr style="margin: 30px 0;">
+
+<h3>👥 Manage Candidates</h3>
+<form action="/add_candidate" method="POST">
+    <input type="text" name="candidate_name" placeholder="Enter Candidate Name" required style="padding: 10px; width: 60%;">
+    <button type="submit" style="padding: 10px 20px; background: #28a745; color: white; border: none; cursor: pointer;">Add Candidate</button>
+</form>
+
+<h4>Current Candidates on Server:</h4>
+<ul style="text-align: left; max-width: 300px; margin: auto; background: #f8f9fa; padding: 20px; border-radius: 5px;">
+    {% if candidates %}
+        {% for candidate in candidates %}
+            <li><strong>{{ candidate }}</strong></li>
+        {% endfor %}
+    {% else %}
+        <p style="color: #888;">No candidates added yet.</p>
+    {% endif %}
+</ul>
+<div style="margin-top: 50px; border-top: 2px solid #eee; padding-top: 20px;">
+    <a href="/voter_registry" style="display: inline-block; padding: 15px 25px; background: #17a2b8; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">
+        📊 View Live Voter Registry & Audit Log
+    </a>
+</div>
+<h3>🖋️ Manual Signature Queue</h3>
+<table border="1" style="width:100%; border-collapse: collapse;">
+    <tr style="background:#f2f2f2;">
+        <th>Voter UID</th>
+        <th>Blinded Data (Encrypted)</th>
+        <th>Action</th>
+    </tr>
+    {% for uid, data in pending_requests.items() %}
+    <tr>
+        <td>{{ uid }}</td>
+        <td><small>{{ (data.blinded_vote | string)[:20] }}...</small></td>        <td>
+            <form action="/admin/sign_ballot/{{ uid }}" method="POST">
+                <button type="submit" style="background:blue; color:white;">Sign Digitally</button>
+            </form>
+        </td>
+    </tr>
+    {% endfor %}
+</table>
                 </div>
             </div>
         </div>
