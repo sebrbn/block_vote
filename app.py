@@ -42,6 +42,9 @@ signed_blinded_votes = {}       # { user_id: admin_signature }
 # ----------------------------------------------------------------
 @app.route('/')
 def home():
+    if session.get('is_admin'):
+        return redirect(url_for('admin_page'))
+    
     if 'user_id' in session:
         return redirect(url_for('dashboard'))
     return render_template('login.html', otp_sent=False)
@@ -84,6 +87,7 @@ def verify_otp():
     user_id = session.get('temp_user_id')
     
     if user_id in otp_storage and str(otp_storage[user_id]) == user_otp:
+        session.clear()
         session['user_id'] = user_id
         del otp_storage[user_id]
         return redirect(url_for('dashboard'))
@@ -100,6 +104,16 @@ def logout():
 # ----------------------------------------------------------------
 @app.route('/dashboard')
 def dashboard():
+    if session.get('is_admin'):
+        return """
+        <div style='text-align: center; padding: 50px; font-family: sans-serif;'>
+            <h1 style='color: #d9534f;'>🚫 Access Denied: Conflict of Interest</h1>
+            <p>Your session is registered as an Election Administrator.</p>
+            <p>Administrators are strictly prohibited from casting a vote.</p>
+            <a href='/admin' style='color: #0275d8; text-decoration: none; font-weight: bold;'>Return to Admin Console</a>
+        </div>
+        """, 403
+    
     if 'user_id' not in session:
         return redirect(url_for('home'))
     return render_template('dashboard.html', user=session['user_id'])
@@ -122,7 +136,9 @@ def voter_registry():
 def generate_token():
     if not is_election_active:
          return "<h1>🚫 Election Not Started!</h1><p>Admin must reconstruct keys first.</p><a href='/dashboard'>Back</a>"
-
+    if session.get('is_admin'):
+        return "<h1>🚫 Access Denied</h1><p>Admins cannot generate voting tokens.</p>", 403
+    
     # 1. Grab the real IP (Proxy-safe for Ngrok/LAN)
     client_ip = request.headers.get('X-Forwarded-For', request.remote_addr).split(',')[0].strip()
 
@@ -177,26 +193,35 @@ def vote_status():
     user_id = session.get('user_id')
     
     if user_id in signed_blinded_votes:
-        # Admin signed it! Show the final submit button.
+        # Admin signed it! Show the final submit button with the "automatic" illusion.
         return """
         <div style="text-align:center; padding:50px; font-family:sans-serif;">
             <h1 style="color:#28a745;">✅ Admin Signature Received!</h1>
-            <p>Your ballot has been authorized. Click below to unblind and mine the block.</p>
+            <p>Your encrypted ballot has been safely authorized.</p>
             <form action='/submit_to_blockchain' method='POST'>
-                <button type='submit' style='padding:15px 30px; background:#007bff; color:white; border:none; font-size:18px; cursor:pointer;'>
-                    Unblind & Mine Block
+                <button type='submit' style='padding:15px 30px; background:#28a745; color:white; border:none; font-size:18px; font-weight:bold; cursor:pointer; border-radius:5px;'>
+                    Cast Final Vote
                 </button>
             </form>
+            <p style="font-size: 13px; color: gray; margin-top: 20px;">
+                <em>*The server will automatically unblind your signature and mine your transaction into the blockchain.</em>
+            </p>
         </div>
         """
     elif user_id in pending_signature_requests:
-        # Still waiting for admin
+        # Still waiting for admin - NOW WITH AUTO-REFRESH
         return """
         <div style="text-align:center; padding:50px; font-family:sans-serif;">
+            <meta http-equiv="refresh" content="3">
+            
             <h1>⏳ Waiting for Admin Authorization...</h1>
-            <button onclick='location.reload()' style='padding:10px 20px; font-size:16px; cursor:pointer;'>
+            <p>Your ballot is currently encrypted and waiting for the admin's blind signature.</p>
+            <button onclick='location.reload()' style='padding:10px 20px; font-size:16px; cursor:pointer; border-radius:5px;'>
                 Refresh Status
             </button>
+            <p style="font-size: 13px; color: gray; margin-top: 20px;">
+                <em>*This page will automatically refresh every 3 seconds.</em>
+            </p>
         </div>
         """
     else:
@@ -293,6 +318,8 @@ def admin_login():
     except ValueError:
         pass
 
+    
+
     challenge = session.get('login_challenge')
     sig_input = request.form.get('signature').strip()
     
@@ -302,6 +329,7 @@ def admin_login():
         
         # 🛡️ THIS IS WHERE YOUR RSA CODE AUTHENTICATES THE ADMIN
         if rsa_signature.verify(challenge, signature_int):
+            session.clear()
             session['is_admin'] = True
             print("✅ SECURE LOG: Admin authenticated via RSA Challenge-Response.")
             return redirect(url_for('admin_page'))
@@ -470,6 +498,14 @@ def get_chain():
 
 @app.route('/explorer')
 def explorer():
+    if not session.get('is_admin'):
+        return """
+        <div style='text-align: center; padding: 50px; font-family: sans-serif;'>
+            <h1 style='color: #d9534f;'>🚫 Access Denied</h1>
+            <p>The blockchain ledger is strictly restricted to Election Administrators.</p>
+            <a href='/'>Return to Home</a>
+        </div>
+        """, 403
     return render_template('explorer.html', chain=vote_chain.chain)
 
 # ----------------------------------------------------------------
