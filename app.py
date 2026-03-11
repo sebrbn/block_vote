@@ -176,7 +176,7 @@ def generate_token():
     client_ip = request.headers.get('X-Forwarded-For', request.remote_addr).split(',')[0].strip()
 
     # 🛑 2. SECURITY CHECK: Prevent Admins from generating a voting token
-    if False: #client_ip in submitted_ips:
+    if client_ip in submitted_ips:
         return """
         <div style='text-align: center; padding: 50px; font-family: sans-serif;'>
             <h1 style='color: #d9534f;'>🚫 Access Denied: Conflict of Interest</h1>
@@ -497,7 +497,7 @@ def submit_share():
         parsed_share = ast.literal_eval(share_input)
         
         # 1. SECURITY CHECK: Has this device already submitted a share?
-        if False: #client_ip in submitted_ips:
+        if client_ip in submitted_ips:
             error_msg = f"Access Denied: A share was already submitted from this device ({client_ip})."
             
         # 2. Strict Format Check
