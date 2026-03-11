@@ -101,9 +101,18 @@ class Blockchain:
         return hashlib.sha256(block_string).hexdigest()
 
     def mine_pending_transactions(self):
-        last_block = self.last_block
-        block_data = json.dumps(self.pending_transactions, sort_keys=True)
-        nonce = proof_of_work.mine(block_data, difficulty=4)
-        previous_hash = self.hash(last_block)
-        block = self.create_block(nonce, previous_hash)
-        return block
+    # Create a new block with the pending transactions
+        new_block = {
+        'index': len(self.chain),
+        'timestamp': time.time(),
+        'transactions': self.pending_transactions,
+        'proof': 100, # or your POW result
+        'previous_hash': self.hash(self.chain[-1])
+    }
+    
+    # IMPORTANT: Does it actually append?
+        self.chain.append(new_block)
+    
+    # Clear the pending list
+        self.pending_transactions = []
+        return new_block

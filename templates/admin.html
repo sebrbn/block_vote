@@ -54,51 +54,152 @@
                     {% endif %}
 
                     <hr style="margin: 30px 0;">
+<hr style="margin: 40px 0;">
 
-<h3>👥 Manage Candidates</h3>
-<form action="/add_candidate" method="POST">
-    <input type="text" name="candidate_name" placeholder="Enter Candidate Name" required style="padding: 10px; width: 60%;">
-    <button type="submit" style="padding: 10px 20px; background: #28a745; color: white; border: none; cursor: pointer;">Add Candidate</button>
-</form>
+<div style="max-width: 600px; margin: 0 auto; text-align: center; background: white; padding: 20px; border-radius: 10px; box-shadow: 0px 4px 10px rgba(0,0,0,0.1);">
+    <h2 style="color: #333;">📊 Live Election Results</h2>
+    <canvas id="resultsChart"></canvas>
+</div>
+<div style="display: flex; justify-content: space-between; align-items: center; background: #343a40; padding: 10px 20px; border-radius: 8px; margin-bottom: 20px;">
+    <span style="color: white; font-weight: bold; font-size: 18px;">🛡️ Election Control Center</span>
+    <a href="/admin/logout" style="
+        background-color: #dc3545; 
+        color: white; 
+        padding: 8px 16px; 
+        text-decoration: none; 
+        border-radius: 5px; 
+        font-size: 14px; 
+        font-weight: bold;
+        transition: background 0.3s;
+    " onmouseover="this.style.backgroundColor='#a71d2a'" onmouseout="this.style.backgroundColor='#dc3545'">
+        Exit & Lock Session
+    </a>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-<h4>Current Candidates on Server:</h4>
-<ul style="text-align: left; max-width: 300px; margin: auto; background: #f8f9fa; padding: 20px; border-radius: 5px;">
-    {% if candidates %}
-        {% for candidate in candidates %}
-            <li><strong>{{ candidate }}</strong></li>
-        {% endfor %}
-    {% else %}
-        <p style="color: #888;">No candidates added yet.</p>
-    {% endif %}
-</ul>
+<script>
+    let resultsChart;
+
+    async function fetchResults() {
+        try {
+            const response = await fetch('/api/live_results');
+            if (!response.ok) return; // Fails silently if unauthorized
+            const data = await response.json();
+            
+            const candidates = Object.keys(data);
+            const votes = Object.values(data);
+
+            if (!resultsChart) {
+                // Draw the chart for the first time
+                const ctx = document.getElementById('resultsChart').getContext('2d');
+                resultsChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: candidates,
+                        datasets: [{
+                            label: 'Total Votes Cast',
+                            data: votes,
+                            // Cool multi-color bars
+                            backgroundColor: ['#007bff', '#28a745', '#dc3545', '#ffc107', '#17a2b8', '#6610f2'],
+                            borderRadius: 5
+                        }]
+                    },
+                    options: {
+                        scales: {
+                            y: { beginAtZero: true, ticks: { stepSize: 1 } }
+                        },
+                        animation: { duration: 0 } // Disables the bouncy animation so auto-refresh looks smooth
+                    }
+                });
+            } else {
+                // Update the existing chart smoothly
+                resultsChart.data.labels = candidates;
+                resultsChart.data.datasets[0].data = votes;
+                resultsChart.update();
+            }
+        } catch (error) {
+            console.error("Error fetching live results:", error);
+        }
+    }
+
+    // Fetch immediately, then refresh every 3 seconds
+    fetchResults();
+    setInterval(fetchResults, 3000);
+</script>
+<div style="margin-top: 40px; padding: 25px; background: #fff; border-radius: 12px; border: 1px solid #eaeaea; box-shadow: 0 2px 5px rgba(0,0,0,0.02);">
+    <h3 style="margin-top: 0; color: #333; display: flex; align-items: center; gap: 10px;">
+        <span style="font-size: 24px;">👥</span> Candidate Management
+    </h3>
+    
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; align-items: start;">
+        
+        <div style="background: #fcfcfc; padding: 20px; border-radius: 8px; border: 1px dashed #ccc;">
+            <p style="margin-top: 0; font-size: 13px; color: #666; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px;">Register New Candidate</p>
+            <form action="/add_candidate" method="POST" style="display: flex; flex-direction: column; gap: 12px;">
+                <input type="text" name="candidate_name" placeholder="Full Name (e.g. Alice Smith)" required 
+                    style="padding: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; outline: none; transition: border 0.3s;"
+                    onfocus="this.style.borderColor='#007bff'">
+                <button type="submit" style="padding: 12px; background: #007bff; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; transition: transform 0.2s, background 0.3s;"
+                    onmouseover="this.style.background='#0056b3'; this.style.transform='translateY(-1px)'"
+                    onmouseout="this.style.background='#007bff'; this.style.transform='translateY(0)'">
+                    ➕ Add to Election
+                </button>
+            </form>
+        </div>
+
+        <div>
+            <p style="margin-top: 0; font-size: 13px; color: #666; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px;">Nominated Candidates</p>
+            <div style="max-height: 180px; overflow-y: auto; background: #f8f9fa; border-radius: 8px; padding: 10px; border: 1px solid #eee;">
+                {% if candidates %}
+                    <ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px;">
+                        {% for candidate in candidates %}
+                            <li style="background: white; padding: 10px 15px; border-radius: 6px; border-left: 4px solid #007bff; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                                <span style="font-weight: 600; color: #333;">{{ candidate }}</span>
+                                <span style="font-size: 11px; background: #e7f3ff; color: #007bff; padding: 2px 8px; border-radius: 10px; font-weight: bold;">Verified</span>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <div style="text-align: center; padding: 20px; color: #999; font-style: italic; font-size: 14px;">
+                        No candidates registered yet...
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+    </div>
+</div>
 <div style="margin-top: 50px; border-top: 2px solid #eee; padding-top: 20px;">
     <a href="/voter_registry" style="display: inline-block; padding: 15px 25px; background: #17a2b8; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">
         📊 View Live Voter Registry & Audit Log
     </a>
 </div>
-<h3>🖋️ Manual Signature Queue</h3>
-<table border="1" style="width:100%; border-collapse: collapse;">
-    <tr style="background:#f2f2f2;">
-        <th>Voter UID</th>
-        <th>Blinded Data (Encrypted)</th>
-        <th>Action</th>
-    </tr>
-    {% for uid, data in pending_requests.items() %}
-    <tr>
-        <td>{{ uid }}</td>
-        <td><small>{{ (data.blinded_vote | string)[:20] }}...</small></td>        <td>
-            <form action="/admin/sign_ballot/{{ uid }}" method="POST">
-                <button type="submit" style="background:blue; color:white;">Sign Digitally</button>
-            </form>
-        </td>
-    </tr>
-    {% endfor %}
-</table>
+
                 </div>
             </div>
         </div>
         
     </div>
-
+<script>
+    // 🔄 THE AUTO-SYNC GOSSIP PROTOCOL
+    // This silently checks the network for a longer chain every 5 seconds
+    setInterval(async () => {
+        try {
+            const response = await fetch('/nodes/resolve');
+            const data = await response.json();
+            
+            // If the server tells us it found a longer chain and replaced ours
+            if (data.message && data.message.includes('replaced')) {
+                console.log("🚨 ALERT: Longer chain detected on the network. Ledger auto-synced!");
+                
+                // Optional: Pop up an alert or refresh the page so the admin sees it
+                // alert("Network Sync: A new block was mined by another node and downloaded to your ledger.");
+                // location.reload(); 
+            }
+        } catch (error) {
+            console.error("Auto-sync ping failed (Network might be asleep).", error);
+        }
+    }, 5000); // 5000 milliseconds = 5 seconds
+</script>
 </body>
 </html>

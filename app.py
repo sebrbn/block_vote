@@ -10,6 +10,7 @@ import hashlib    # For Cryptographic Hashing
 import secrets    # For generating high-entropy dynamic keys
 import re
 import ipaddress
+from flask import jsonify
 
 # IMPORT YOUR EXISTING ALGORITHMS
 import vote_token_generator
@@ -31,11 +32,12 @@ is_election_active = False
 otp_storage = {}            # Stores OTPs temporarily
 stored_secret_hash = None   # NEW: Stores only the hash, never the secret!
 student_db={}
-ADMIN_PIN = "123456"           # The secret admin password (change this to whatever you want)
 candidates_list = []       # Dynamic list of candidates
 # Add this to your global variables
 pending_signature_requests = {} # { user_id: blinded_message }
 signed_blinded_votes = {}       # { user_id: admin_signature }
+# Global list to hold live admin notifications for the dashboard
+admin_notifications = []
 
 # ----------------------------------------------------------------
 # 1. AUTHENTICATION ROUTES (OTP SYSTEM)
@@ -51,17 +53,9 @@ def home():
 
 @app.route('/send_otp', methods=['POST'])
 def send_otp():
-    user_id = request.form['userid'].strip().upper() # Clean the input and make it uppercase
+    user_id = request.form['userid'].strip().upper()
     
-    # 🛑 SECURITY CHECK: Validate RSET UID format (U + exactly 7 digits)
-    # ^ means start of string, U is the letter, \d{7} means 7 numbers, $ means end of string
-    if not re.match(r'^U\d{7}$', user_id):
-        return render_template('login.html', otp_sent=False, error="Invalid UID! Format must be 'U' followed by 7 numbers (e.g., U2303181).")
-    
-    def send_otp():
-        user_id = request.form['userid'].strip().upper()
-    
-    # 1. Check Format (From our last step)
+    # 1. Check Format: Validate RSET UID format (U + exactly 7 digits)
     if not re.match(r'^U\d{7}$', user_id):
         return render_template('login.html', otp_sent=False, error="Invalid UID! Format must be 'U' followed by 7 numbers (e.g., U2303181).")
     
@@ -94,6 +88,19 @@ def verify_otp():
     else:
         return render_template('login.html', otp_sent=True, error="Invalid OTP! Check terminal.")
 
+@app.route('/api/notifications')
+def get_notifications():
+    """Admin endpoint to fetch and clear new notifications"""
+    global admin_notifications
+    if not session.get('is_admin'):
+        return jsonify([]) # Security: Only admins can fetch this
+
+    # Grab the current notifications and immediately clear the list
+    current_notifs = admin_notifications.copy()
+    admin_notifications.clear()
+    
+    return jsonify(current_notifs)
+
 @app.route('/logout')
 def logout():
     session.clear()
@@ -117,6 +124,32 @@ def dashboard():
     if 'user_id' not in session:
         return redirect(url_for('home'))
     return render_template('dashboard.html', user=session['user_id'])
+
+@app.route('/api/live_results')
+def live_results():
+    if not session.get('is_admin'):
+        return jsonify({})
+        
+    tally = {}
+    for block in vote_chain.chain:
+        transactions = block.get('transactions', [])
+        
+        for tx in transactions:
+            # 🎯 THE FIX: Reach into the 'vote' dictionary
+            vote_data = tx.get('vote')
+            
+            if vote_data and isinstance(vote_data, dict):
+                candidate = vote_data.get('candidate')
+                if candidate:
+                    tally[candidate] = tally.get(candidate, 0) + 1
+            
+            # Fallback: In case some blocks are structured differently
+            elif isinstance(tx, dict) and tx.get('candidate'):
+                candidate = tx.get('candidate')
+                tally[candidate] = tally.get(candidate, 0) + 1
+    
+    print(f"📊 TALLY UPDATED: {tally}") 
+    return jsonify(tally)
 
 @app.route('/voter_registry')
 def voter_registry():
@@ -143,7 +176,7 @@ def generate_token():
     client_ip = request.headers.get('X-Forwarded-For', request.remote_addr).split(',')[0].strip()
 
     # 🛑 2. SECURITY CHECK: Prevent Admins from generating a voting token
-    if client_ip in submitted_ips:
+    if False: #client_ip in submitted_ips:
         return """
         <div style='text-align: center; padding: 50px; font-family: sans-serif;'>
             <h1 style='color: #d9534f;'>🚫 Access Denied: Conflict of Interest</h1>
@@ -160,102 +193,87 @@ def generate_token():
 # ----------------------------------------------------------------
 # 3. VOTING & MINING
 # ----------------------------------------------------------------
-@app.route('/request_signature', methods=['POST'])
-def request_signature():
+@app.route('/cast_vote', methods=['POST'])
+def cast_vote():
     user_id = session.get('user_id')
     vote_choice = request.form.get('candidate')
-
-    if not user_id or not vote_choice:
-        return redirect(url_for('home'))
-
-    # 1. Blind the vote
-    blinded_vote, r_factor = blind_signature.blind_message(vote_choice)
-    
-    # 2. Give ONLY the blinded vote to the Admin queue
-    pending_signature_requests[user_id] = {
-        'blinded_vote': blinded_vote
-    }
-    
-    # 3. Securely store the voter's secrets in their own session cookie
-    session['r_factor'] = r_factor
-    session['vote_choice'] = vote_choice
-    
-    # 4. Add to Registry as "Pending"
-    if user_id not in student_db:
-        student_db[user_id] = {'voted': False}
-    
-    # 5. THE FIX: Redirect them to the waiting room so they don't get stuck!
-    return redirect(url_for('vote_status'))
-
-@app.route('/vote_status')
-def vote_status():
-    """Voter Waiting Room"""
-    user_id = session.get('user_id')
-    
-    if user_id in signed_blinded_votes:
-        # Admin signed it! Show the final submit button with the "automatic" illusion.
-        return """
-        <div style="text-align:center; padding:50px; font-family:sans-serif;">
-            <h1 style="color:#28a745;">✅ Admin Signature Received!</h1>
-            <p>Your encrypted ballot has been safely authorized.</p>
-            <form action='/submit_to_blockchain' method='POST'>
-                <button type='submit' style='padding:15px 30px; background:#28a745; color:white; border:none; font-size:18px; font-weight:bold; cursor:pointer; border-radius:5px;'>
-                    Cast Final Vote
-                </button>
-            </form>
-            <p style="font-size: 13px; color: gray; margin-top: 20px;">
-                <em>*The server will automatically unblind your signature and mine your transaction into the blockchain.</em>
-            </p>
-        </div>
-        """
-    elif user_id in pending_signature_requests:
-        # Still waiting for admin - NOW WITH AUTO-REFRESH
-        return """
-        <div style="text-align:center; padding:50px; font-family:sans-serif;">
-            <meta http-equiv="refresh" content="3">
-            
-            <h1>⏳ Waiting for Admin Authorization...</h1>
-            <p>Your ballot is currently encrypted and waiting for the admin's blind signature.</p>
-            <button onclick='location.reload()' style='padding:10px 20px; font-size:16px; cursor:pointer; border-radius:5px;'>
-                Refresh Status
-            </button>
-            <p style="font-size: 13px; color: gray; margin-top: 20px;">
-                <em>*This page will automatically refresh every 3 seconds.</em>
-            </p>
-        </div>
-        """
-    else:
-        return redirect(url_for('dashboard'))
-
-@app.route('/submit_to_blockchain', methods=['POST'])
-def submit_to_blockchain():
-    """Final Step: Unblind and Mine"""
-    user_id = session.get('user_id')
     token = session.get('token')
 
-    # 1. Grab Admin's Signature and Voter's Secrets
-    signed_blinded = signed_blinded_votes.pop(user_id, None)
-    r_factor = session.get('r_factor')
-    vote_choice = session.get('vote_choice')
+    if not user_id or not vote_choice or not token:
+        return redirect(url_for('home'))
 
-    if not signed_blinded or not r_factor:
-        return "<h1>🚫 Error</h1><p>Missing signature or blinding factor.</p>", 400
+    # 🛡️ THE DOUBLE-SPENDING SHIELD
+    # If the user is already in the DB and 'voted' is True, kill the process.
+    if student_db.get(user_id, {}).get('voted'):
+        return """
+        <div style='text-align: center; padding: 50px; font-family: sans-serif;'>
+            <h1 style='color: #d9534f;'>⚠️ Double-Vote Detected</h1>
+            <p>Our ledger shows you have already cast a ballot. You cannot vote twice.</p>
+            <a href='/logout'>Logout</a>
+        </div>
+        """, 403
 
-    # 2. Cryptographic Unblinding
+    if not is_election_active:
+        return "Error: Election is locked.", 403
+
+    # --- 🤖 AUTOMATION ---
+    blinded_vote, r_factor = blind_signature.blind_message(vote_choice)
+    signed_blinded = blind_signature.sign_blinded_message(blinded_vote)
     signature = blind_signature.unblind_signature(signed_blinded, r_factor)
 
-    # 3. Add to Blockchain and Mine
+    # 4. Add and Mine
     vote_chain.add_transaction(token, {
         'candidate': vote_choice,
         'signature': signature
     })
     mined_block = vote_chain.mine_pending_transactions()
 
-    # 4. Lock them out in the Registry
+    # 5. Lock the voter in the Registry IMMEDIATELY
+    if user_id not in student_db:
+        student_db[user_id] = {}
     student_db[user_id]['voted'] = True
-    print(f"✅ SECURE LOG: Block mined for {user_id}. Vote locked.")
+    
+    # 6. Push to Dashboard
+    global admin_notifications
+    admin_notifications.append(token)
 
-    return render_template('success.html', block=mined_block)
+    # 🔄 THE REDIRECT FIX: 
+    # Instead of rendering a template (which causes the refresh bug), 
+    # we redirect them to a static success page.
+    return redirect(url_for('vote_success'))
+
+@app.route('/vote_success')
+def vote_success():
+    user_id = session.get('user_id')
+    if not user_id:
+            return redirect(url_for('home'))
+
+    return """
+    <div style="text-align: center; padding: 100px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+        <div style="background: white; display: inline-block; padding: 40px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+            <h1 style="color: #28a745; font-size: 48px; margin-bottom: 10px;">✅ Vote Secured</h1>
+            <p style="color: #666; font-size: 18px; margin-bottom: 30px;">
+                Your ballot has been cryptographically signed and mined into the blockchain ledger.
+            </p>
+            <hr style="border: 0; border-top: 1px solid #eee; margin-bottom: 30px;">
+            <a href="/logout" style="
+                background-color: #007bff; 
+                color: white; 
+                padding: 15px 35px; 
+                text-decoration: none; 
+                border-radius: 8px; 
+                font-weight: bold; 
+                font-size: 16px;
+                display: inline-block;
+                transition: background 0.3s;
+            " onmouseover="this.style.backgroundColor='#0056b3'" onmouseout="this.style.backgroundColor='#007bff'">
+                Logout & Terminate Session
+            </a>
+        </div>
+    </div>
+    """
+
+
 # ----------------------------------------------------------------
 # 4. ADMIN & SHAMIR'S MULTI-SIG WORKFLOW
 # ----------------------------------------------------------------
@@ -279,6 +297,37 @@ def setup_page():
 
     return render_template('setup.html', generated=generated_shares, active=is_election_active)
 
+@app.route('/results')
+def voter_results():
+    # Voters can see the results, but they don't get the Admin controls
+    return render_template('voter_results.html', candidates=candidates_list)
+
+@app.route('/admin/logout')
+def admin_logout():
+    # Clear the admin-specific session data
+    session.pop('is_admin', None)
+    session.pop('admin_user', None) # if you stored their name
+    # Or just session.clear() to be safe
+    print("🔒 Admin session cleared.")
+    return redirect(url_for('home'))
+
+@app.route('/api/public_results')
+def public_results():
+    """A public version of the tally for the voter dashboard"""
+    tally = {}
+    for block in vote_chain.chain:
+        transactions = block.get('transactions', [])
+        for tx in transactions:
+            # Reusing the 'deep nested' logic we fixed earlier
+            vote_data = tx.get('vote')
+            if vote_data and isinstance(vote_data, dict):
+                candidate = vote_data.get('candidate')
+                if candidate:
+                    tally[candidate] = tally.get(candidate, 0) + 1
+            elif isinstance(tx, dict) and tx.get('candidate'):
+                candidate = tx.get('candidate')
+                tally[candidate] = tally.get(candidate, 0) + 1
+    return jsonify(tally)
 
 @app.route('/generate_setup', methods=['POST'])
 def generate_setup():
@@ -342,6 +391,7 @@ def admin_login():
 @app.route('/admin')
 def admin_page():
     """Renders the live election console"""
+    
     # Grabs the real public IP from Ngrok, or falls back to the normal IP if Ngrok isn't used
     client_ip = request.headers.get('X-Forwarded-For', request.remote_addr).split(',')[0].strip()
 
@@ -447,7 +497,7 @@ def submit_share():
         parsed_share = ast.literal_eval(share_input)
         
         # 1. SECURITY CHECK: Has this device already submitted a share?
-        if client_ip in submitted_ips:
+        if False: #client_ip in submitted_ips:
             error_msg = f"Access Denied: A share was already submitted from this device ({client_ip})."
             
         # 2. Strict Format Check

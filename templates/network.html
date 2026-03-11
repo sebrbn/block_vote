@@ -37,11 +37,7 @@
             <button class="btn-blue" onclick="registerNode()">Connect</button>
         </div>
 
-        <div class="section">
-            <h3>2. Run Consensus Algorithm</h3>
-            <p>Check neighbor nodes. If they have a longer, valid blockchain, replace ours.</p>
-            <button class="btn-green" onclick="syncChain()">🔄 Sync Blockchain</button>
-        </div>
+        
 
         <div class="section" style="border-bottom: none;">
             <h3>System Output Console</h3>
@@ -92,5 +88,23 @@
             .catch(error => outputBox.innerText = "Sync Error: " + error);
         }
     </script>
+    <script>
+    // 🔄 THE AUTO-SYNC GOSSIP PROTOCOL
+    setInterval(async () => {
+        try {
+            const response = await fetch('/nodes/resolve');
+            const data = await response.json();
+            
+            if (data.message && data.message.includes('replaced')) {
+                const outputBox = document.getElementById('output');
+                if (outputBox) {
+                    outputBox.innerText = "🚨 AUTO-SYNC: Longer chain detected and downloaded!\n\n" + JSON.stringify(data, null, 4);
+                }
+            }
+        } catch (error) {
+            console.error("Auto-sync ping failed.", error);
+        }
+    }, 5000); 
+</script>
 </body>
 </html>
