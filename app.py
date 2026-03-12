@@ -474,8 +474,8 @@ def submit_share():
         elif not (isinstance(parsed_share, tuple) and len(parsed_share) == 2):
             error_msg = "Invalid format! Must be a tuple like (1, 12345...)"
             
-        # 3. Cryptographic Verification (Is it a real share?)
-        elif parsed_share not in generated_shares:
+        # 3. Cryptographic Verification (Only if this node was the generator)
+        elif generated_shares and parsed_share not in generated_shares:
             error_msg = "Fake Share Detected! This share does not belong to the current election."
             
         # 4. If it passes all checks, add it to the pool AND record the IP
