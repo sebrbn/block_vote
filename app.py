@@ -60,6 +60,15 @@ def send_otp():
     if not re.match(r'^U\d{7}$', user_id):
         return render_template('login.html', otp_sent=False, error="Invalid UID! Format must be 'U' followed by 7 numbers (e.g., U2303181).")
     
+    # 🛑 2. SECURITY CHECK: Conflict of Interest (No Admins/Nodes)
+    client_ip = request.headers.get('X-Forwarded-For', request.remote_addr).split(',')[0].strip()
+    clean_ip = client_ip.split(':')[0] # Remove port if present
+    
+    is_admin_ip = clean_ip in [n.split(':')[0] for n in vote_chain.nodes] or clean_ip in submitted_ips or clean_ip in ['127.0.0.1', 'localhost']
+    if is_admin_ip:
+         print(f"⛔ Blocked OTP request from Admin/Node IP: {clean_ip}")
+         return render_template('login.html', otp_sent=False, error="Access Denied: Conflict of Interest. Administrators and Nodes are prohibited from voting.")
+    
     # 🛑 2. NEW SECURITY CHECK: Has the student already voted?
     if student_db.get(user_id, {}).get('voted') == True:
         print(f"⛔ Blocked login attempt: {user_id} already voted.")
