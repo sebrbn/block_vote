@@ -1,21 +1,158 @@
-<!DOCTYPE html>
-<html>
-<head><title>Dashboard</title></head>
-<body>
-    <h2>Welcome, {{ user }}</h2>
-    <p>You are authenticated via OTP.</p>
-    <hr>
-    <form action="/generate_token" method="POST">
-        <button type="submit" style="padding:15px; background:green; color:white;">
-             Generate Token & Vote
-        </button>
-    </form>
-    <br>
-    <a href="/logout">Logout</a>
-    <div style="margin-top: 30px;">
-    <a href="/results" style="padding: 10px 20px; background: #17a2b8; color: white; text-decoration: none; border-radius: 5px;">
-        View Live Results
-    </a>
+{% extends "base.html" %}
+
+{% block title %}BlockVote | Student Dashboard{% endblock %}
+
+{% block nav %}
+<div class="flex items-center gap-4">
+    <span
+        class="text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100 italic">UID:
+        {{ user }}</span>
+    <a href="/logout"
+        class="text-[10px] font-black text-red-500 hover:text-red-600 transition-all uppercase tracking-widest px-4 py-2 border border-red-50 rounded-xl bg-red-50/30">Portal
+        Exit</a>
 </div>
-</body>
-</html>
+{% endblock %}
+
+{% block content %}
+<main class="max-w-6xl mx-auto px-4 py-12 w-full">
+    <header class="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
+        <div>
+            <h1 class="text-4xl font-black text-slate-900 tracking-tighter italic mb-2">Authenticated Portal</h1>
+            <p class="text-slate-500 text-xs font-bold uppercase tracking-widest">Election Cycle: 2026 Academic Session
+            </p>
+        </div>
+        <div class="flex items-center gap-4">
+            <div
+                class="bg-emerald-50 px-5 py-3 rounded-2xl border border-emerald-100 flex items-center gap-3 shadow-sm">
+                <span class="relative flex h-2.5 w-2.5">
+                    <span
+                        class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                </span>
+                <span class="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Identity Verified</span>
+            </div>
+            <a href="/results"
+                class="bg-indigo-50 px-5 py-3 rounded-2xl border border-indigo-100 flex items-center gap-3 shadow-sm hover:bg-indigo-100 transition-all font-black text-[10px] text-indigo-600 uppercase tracking-widest">
+                📊 View Results
+            </a>
+        </div>
+    </header>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Main Action Card -->
+        <div class="lg:col-span-2">
+            <section
+                class="bg-brand-surface rounded-3xl shadow-2xl border border-brand-border overflow-hidden relative group">
+                <div
+                    class="absolute top-0 right-0 w-64 h-64 bg-brand-primary/5 rounded-full blur-3xl -mr-32 -mt-32 transition-transform group-hover:scale-110">
+                </div>
+                <div class="p-12 relative">
+                    <div class="flex items-start justify-between mb-10">
+                        <div>
+                            <span
+                                class="bg-brand-primary text-white text-[10px] font-black px-4 py-1.5 rounded-full uppercase tracking-widest shadow-lg shadow-blue-500/20">Active
+                                Ballot</span>
+                            <h2 class="text-3xl font-black text-slate-900 mt-6 tracking-tight italic">Cast Your Secure
+                                Vote</h2>
+                            <p class="text-slate-500 mt-3 text-sm font-medium leading-relaxed max-w-lg">
+                                Your session is cryptographically linked. Proceed to selection to generate your blinded
+                                RSA token.
+                            </p>
+                        </div>
+                        <div class="hidden sm:block">
+                            <svg class="w-20 h-20 text-slate-100" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+                                <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round"
+                                    stroke-linejoin="round" stroke-width="2"></path>
+                            </svg>
+                        </div>
+                    </div>
+
+                    <form action="/generate_token" method="POST">
+                        <button type="submit"
+                            class="inline-flex items-center justify-center w-full sm:w-auto bg-brand-primary hover:bg-brand-secondary text-white font-black py-5 px-10 rounded-2xl transition-all shadow-2xl shadow-blue-900/20 active:scale-95 uppercase tracking-widest text-xs group/btn">
+                            Enter Voting Chamber
+                            <svg class="w-4 h-4 ml-3 group-hover/btn:translate-x-1 transition-transform" fill="none"
+                                stroke="currentColor" viewbox="0 0 24 24">
+                                <path d="M14 5l7 7m0 0l-7 7m7-7H3" stroke-linecap="round" stroke-linejoin="round"
+                                    stroke-width="2.5"></path>
+                            </svg>
+                        </button>
+                    </form>
+                </div>
+
+                <div class="px-10 py-6 bg-slate-50 border-t border-brand-border flex flex-wrap gap-8">
+                    <div class="flex items-center gap-3">
+                        <div
+                            class="w-8 h-8 rounded-lg bg-white border border-brand-border flex items-center justify-center shadow-sm">
+                            <svg class="w-4 h-4 text-brand-primary" fill="none" stroke="currentColor"
+                                viewbox="0 0 24 24">
+                                <path
+                                    d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                                    stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                            </svg>
+                        </div>
+                        <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">RSA Blinding</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <div
+                            class="w-8 h-8 rounded-lg bg-white border border-brand-border flex items-center justify-center shadow-sm">
+                            <svg class="w-4 h-4 text-brand-primary" fill="none" stroke="currentColor"
+                                viewbox="0 0 24 24">
+                                <path
+                                    d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+                                    stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                            </svg>
+                        </div>
+                        <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Immuntable
+                            Ledger</span>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- Right Side Stats/Info -->
+        <aside class="space-y-8">
+            <div class="bg-brand-surface p-8 rounded-3xl border border-brand-border shadow-2xl">
+                <h3
+                    class="text-[10px] font-black text-slate-400 mb-6 uppercase tracking-widest flex items-center gap-3">
+                    <span class="w-1 h-3 bg-brand-primary rounded-full"></span>
+                    Live Network Metrics
+                </h3>
+                <div class="space-y-6">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold text-slate-500">Blockchain Height</span>
+                        <span class="text-xs font-black text-slate-900 font-mono">#1,402</span>
+                    </div>
+                    <div class="w-full bg-slate-50 rounded-full h-1 border border-slate-100">
+                        <div class="bg-brand-primary h-full w-3/4 rounded-full shadow-[0_0_10px_rgba(37,99,235,0.2)]">
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold text-slate-500">Mined Blocks</span>
+                        <span class="text-xs font-black text-slate-900 italic tracking-tight font-mono">Validated</span>
+                    </div>
+                </div>
+            </div>
+
+            <div
+                class="bg-indigo-50/50 p-8 rounded-3xl border border-indigo-100 shadow-xl relative overflow-hidden group">
+                <div class="relative z-10">
+                    <h3 class="text-[10px] font-black text-indigo-600 mb-4 uppercase tracking-widest">Security Advisory
+                    </h3>
+                    <p class="text-[11px] text-slate-600 leading-relaxed font-medium">
+                        Your vote is anonymous. Neither the Election Commission nor the student government can trace
+                        this ballot back to your identity.
+                    </p>
+                </div>
+                <!-- Abstract blob decoration -->
+                <div
+                    class="absolute -bottom-8 -left-8 w-24 h-24 bg-indigo-500/5 rounded-full blur-2xl group-hover:bg-indigo-500/10 transition-colors">
+                </div>
+            </div>
+
+            <p class="text-[9px] text-slate-300 font-black uppercase tracking-widest text-center italic">Session ID: {{
+                user[:8] }}..._AUTH_SECURE</p>
+        </aside>
+    </div>
+</main>
+{% endblock %}

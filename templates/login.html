@@ -1,49 +1,114 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>BlockVote Login</title>
-    <style>
-        body { font-family: sans-serif; padding: 50px; text-align: center; }
-        .box { border: 1px solid #ccc; padding: 20px; max-width: 400px; margin: auto; border-radius: 10px; }
-        input { padding: 10px; width: 80%; margin: 10px 0; }
-        button { padding: 10px 20px; background: #007bff; color: white; border: none; cursor: pointer; }
-    </style>
-</head>
-<body>
-    <div class="box">
-        <h2> Student Authentication</h2>
-        
-        {% if not otp_sent %}
-        <form action="/send_otp" method="POST">
-            <p>Enter your University Register No:</p>
-            <input 
-                type="text" 
-                name="userid" 
-                placeholder="e.g. U2303175" 
-                pattern="[Uu][0-9]{7}" 
-                minlength="8" 
-                maxlength="8" 
-                title="UID must adhere to RSET guidelines (e.g., U2303181)."
-                required>
-            <br>
-            <button type="submit">Send OTP</button>
-        </form>
-        {% endif %}
+{% extends "base.html" %}
 
-        {% if otp_sent %}
-        <div style="background: #e3f2fd; padding: 10px; margin-bottom: 15px;">
-            ✅ <strong>OTP Sent!</strong> Check the server terminal.
+{% block title %}BlockVote | Student Authentication{% endblock %}
+
+{% block content %}
+<div class="max-w-md w-full" data-purpose="login-container">
+    <div class="bg-brand-surface rounded-3xl shadow-2xl overflow-hidden border border-brand-border">
+        <div class="h-1.5 bg-brand-primary w-full"></div>
+        <div class="p-10">
+            <div class="text-center mb-10">
+                <h1 class="text-3xl font-black text-slate-900 tracking-tighter italic">Block<span
+                        class="text-brand-primary">Vote</span></h1>
+                <p class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-2">Identity Verification
+                    Required</p>
+                <div class="mt-4 flex justify-center gap-1">
+                    <span class="w-1.5 h-1.5 rounded-full bg-brand-primary"></span>
+                    <span class="w-1.5 h-1.5 rounded-full bg-slate-100"></span>
+                    <span class="w-1.5 h-1.5 rounded-full bg-slate-100"></span>
+                </div>
+            </div>
+
+            {% if not otp_sent %}
+            <form class="space-y-6" action="/send_otp" method="POST">
+                <div>
+                    <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2"
+                        for="userid">RSET Student UID</label>
+                    <div class="relative">
+                        <input
+                            class="w-full px-5 py-4 bg-slate-50 border border-brand-border rounded-2xl focus:ring-2 focus:ring-brand-primary focus:border-transparent outline-none transition-all uppercase text-sm font-bold tracking-widest text-slate-900 placeholder:text-slate-300 shadow-inner"
+                            id="userid" name="userid" placeholder="e.g. U2303175" pattern="[Uu][0-9]{7}" minlength="8"
+                            maxlength="8" required type="text" />
+                    </div>
+                </div>
+
+                {% if error %}
+                <div class="bg-red-50 border border-red-100 p-4 rounded-2xl">
+                    <div class="flex items-center gap-3">
+                        <svg class="h-5 w-5 text-red-500" fill="currentColor" viewbox="0 0 20 20">
+                            <path clip-rule="evenodd"
+                                d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                                fill-rule="evenodd"></path>
+                        </svg>
+                        <p class="text-xs text-red-600 font-bold tracking-tight">{{ error }}</p>
+                    </div>
+                </div>
+                {% endif %}
+
+                <div class="pt-4">
+                    <button
+                        class="w-full bg-brand-primary hover:bg-brand-secondary text-white font-black py-4 px-6 rounded-2xl transition-all shadow-xl shadow-blue-500/10 active:scale-95 uppercase tracking-widest text-[11px]"
+                        type="submit">
+                        1. Initiate Token Handshake
+                    </button>
+                </div>
+            </form>
+            {% else %}
+            <form class="space-y-6" action="/verify_otp" method="POST">
+                <div class="bg-emerald-50 border border-emerald-100 p-4 rounded-2xl mb-4">
+                    <p class="text-xs text-emerald-600 font-bold tracking-tight text-center">✅ Identity confirmed. Check
+                        terminal for code.</p>
+                </div>
+
+                <div>
+                    <label
+                        class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 text-center"
+                        for="otp">Verification OTP Challenge</label>
+                    <input
+                        class="w-full px-5 py-5 bg-slate-50 border border-brand-border rounded-3xl focus:ring-2 focus:ring-brand-primary focus:border-transparent outline-none transition-all text-center tracking-[1em] font-black text-2xl text-brand-primary placeholder:text-slate-200 shadow-inner"
+                        id="otp" name="otp" maxlength="4" placeholder="----" required type="text" />
+                </div>
+
+                {% if error %}
+                <div class="bg-red-50 border border-red-100 p-4 rounded-2xl">
+                    <div class="flex items-center gap-3">
+                        <svg class="h-5 w-5 text-red-500" fill="currentColor" viewbox="0 0 20 20">
+                            <path clip-rule="evenodd"
+                                d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                                fill-rule="evenodd"></path>
+                        </svg>
+                        <p class="text-xs text-red-600 font-bold tracking-tight">{{ error }}</p>
+                    </div>
+                </div>
+                {% endif %}
+
+                <div class="pt-4">
+                    <button
+                        class="w-full bg-brand-primary hover:bg-brand-secondary text-white font-black py-4 px-6 rounded-2xl transition-all shadow-xl shadow-blue-500/10 active:scale-95 uppercase tracking-widest text-[11px]"
+                        type="submit">
+                        2. Verify & Authenticate Session
+                    </button>
+                    <a href="/"
+                        class="block text-center mt-6 text-[10px] text-slate-400 hover:text-brand-primary font-bold uppercase tracking-widest underline decoration-2 underline-offset-4 transition-colors">
+                        Re-enter Student UID
+                    </a>
+                </div>
+            </form>
+            {% endif %}
         </div>
-        <form action="/verify_otp" method="POST">
-            <p>Enter the 4-digit code sent to your email:</p>
-            <input type="text" name="otp" placeholder="e.g. 1234" required>
-            <button type="submit">Verify & Login</button>
-        </form>
-        {% endif %}
-        
-        {% if error %}
-        <p style="color: red; font-weight: bold;">❌ {{ error }}</p>
-        {% endif %}
+
+        <div class="bg-slate-50 border-t border-brand-border px-8 py-5">
+            <div
+                class="flex items-center justify-center space-x-3 text-[9px] text-slate-400 font-bold uppercase tracking-widest">
+                <svg class="h-4 w-4 text-emerald-500" fill="currentColor" viewbox="0 0 20 20"
+                    xmlns="http://www.w3.org/2000/svg">
+                    <path clip-rule="evenodd"
+                        d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 4.946-2.397 9.334-6 11.754-3.603-2.42-6-6.808-6-11.754 0-.68.056-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                        fill-rule="evenodd"></path>
+                </svg>
+                <span>End-to-End Encrypted Handshake</span>
+            </div>
+        </div>
     </div>
-</body>
-</html>
+</div>
+{% endblock %}

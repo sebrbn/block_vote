@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+
+{% block title %}BlockVote | Authorization Status{% endblock %}
+
+{% block extra_styles %}
+@keyframes spin-slow {
+from { transform: rotate(0deg); }
+to { transform: rotate(360deg); }
+}
+.animate-spin-slow {
+animation: spin-slow 3s linear infinite;
+}
+{% endblock %}
+
+{% block content %}
+<main class="max-w-6xl mx-auto px-4 py-12 w-full">
+    <header class="text-center mb-12">
+        <h1 class="text-3xl font-black tracking-tight text-slate-900 sm:text-4xl italic">Block<span
+                class="text-brand-primary">Vote</span> Portal</h1>
+        <p class="mt-4 text-[10px] uppercase tracking-widest text-slate-400 font-bold">Step 2: Waiting for
+            Administrative Digital Signature.</p>
+    </header>
+
+    <!-- ProgressTracker -->
+    <nav aria-label="Progress" class="mb-12">
+        <ol class="flex items-center justify-center space-x-8 sm:space-x-20" role="list">
+            <li class="relative flex flex-col items-center gap-2">
+                <div
+                    class="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-600 text-white ring-4 ring-white shadow-xl shadow-emerald-500/20">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+                        <path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5">
+                        </path>
+                    </svg>
+                </div>
+                <span class="text-[10px] font-black uppercase tracking-widest text-emerald-600">Selected</span>
+            </li>
+            <li class="relative flex flex-col items-center gap-2">
+                <div
+                    class="flex h-10 w-10 items-center justify-center rounded-xl {% if signature %}bg-emerald-600 text-white shadow-xl shadow-emerald-500/20{% else %}bg-brand-primary text-white shadow-2xl shadow-blue-500/20 ring-4 ring-white animate-pulse{% endif %}">
+                    {% if signature %}
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+                        <path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5">
+                        </path>
+                    </svg>
+                    {% else %}
+                    <span class="text-sm font-black italic">2</span>
+                    {% endif %}
+                </div>
+                <span
+                    class="text-[10px] font-black uppercase tracking-widest {% if signature %}text-emerald-600{% else %}text-brand-primary{% endif %}">Authorize</span>
+            </li>
+            <li class="relative flex flex-col items-center gap-2 text-slate-300">
+                <div
+                    class="flex h-10 w-10 items-center justify-center rounded-xl bg-white border border-slate-200 ring-4 ring-slate-50">
+                    <span class="text-sm font-black italic">3</span>
+                </div>
+                <span class="text-[10px] font-black uppercase tracking-widest">Finalize</span>
+            </li>
+        </ol>
+    </nav>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div class="lg:col-span-2">
+            {% if not signature %}
+            <!-- Waiting State -->
+            <section
+                class="bg-white p-16 rounded-3xl shadow-2xl border border-slate-100 flex flex-col items-center justify-center text-center relative overflow-hidden">
+                <div class="absolute inset-0 bg-brand-primary/5 pointer-events-none"></div>
+                <div class="relative mb-10">
+                    <div class="w-24 h-24 border-4 border-slate-100 border-t-brand-primary rounded-full animate-spin">
+                    </div>
+                    <div class="absolute inset-0 flex items-center justify-center">
+                        <svg class="w-8 h-8 text-slate-200" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+                            <path
+                                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                                stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"></path>
+                        </svg>
+                    </div>
+                </div>
+                <h3 class="text-2xl font-black text-slate-900 italic tracking-tight">Pending Secure Signature...</h3>
+                <p class="text-slate-500 mt-4 text-xs font-medium leading-relaxed max-w-sm">
+                    Your blinded ballot is awaiting processing. Verification happens automatically—please do not
+                    refresh.
+                </p>
+
+                <div
+                    class="mt-12 w-full max-w-xs bg-slate-100 rounded-full h-1.5 overflow-hidden border border-slate-200 shadow-inner">
+                    <div
+                        class="bg-brand-primary h-full w-2/3 shadow-[0_0_10px_rgba(37,99,235,0.2)] animate-[shimmer_2s_infinite]">
+                    </div>
+                </div>
+
+                <p class="text-[10px] uppercase tracking-widest text-slate-400 mt-8 font-black flex items-center gap-3">
+                    <span class="relative flex h-2 w-2">
+                        <span
+                            class="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-primary opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2 w-2 bg-brand-primary"></span>
+                    </span>
+                    Live Mesh Network Connection
+                </p>
+                <script>
+                    setTimeout(function () {
+                        window.location.reload();
+                    }, 5000);
+                </script>
+            </section>
+            {% else %}
+            <!-- Success/Ready State -->
+            <section
+                class="bg-emerald-50 p-16 rounded-3xl shadow-2xl border border-emerald-100 flex flex-col items-center justify-center text-center relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-full h-1 bg-emerald-500/20"></div>
+                <div
+                    class="w-24 h-24 bg-white rounded-2xl flex items-center justify-center mb-10 shadow-xl border border-emerald-100 rotate-12">
+                    <svg class="w-12 h-12 text-emerald-600" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+                        <path
+                            d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+                            stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"></path>
+                    </svg>
+                </div>
+                <h3 class="text-3xl font-black text-slate-900 italic tracking-tight">Authorization Granted</h3>
+                <p class="text-emerald-700 mt-4 text-xs font-bold uppercase tracking-widest">Commission RSA Signed</p>
+
+                <div class="mt-10 p-6 bg-white rounded-2xl border border-emerald-100 w-full mb-10 shadow-sm">
+                    <p class="text-[9px] font-black text-emerald-500 uppercase tracking-[0.2em] mb-3">Validation
+                        Artifact Fragment</p>
+                    <code
+                        class="text-[10px] text-slate-400 break-all font-mono leading-relaxed bg-slate-50 p-3 rounded-lg block">
+                        SIG_BLOCKVOTE_MESH_{{ signature[:48] }}...
+                    </code>
+                </div>
+
+                <form action="/submit_to_blockchain" method="POST" class="w-full">
+                    <button
+                        class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-5 px-8 rounded-2xl font-black shadow-2xl shadow-emerald-900/10 transition-all active:scale-95 uppercase tracking-widest text-[11px]"
+                        type="submit">
+                        Unblind & Transmit Ballot
+                    </button>
+                </form>
+            </section>
+            {% endif %}
+        </div>
+
+        <aside class="lg:col-span-1">
+            <div class="bg-white p-8 rounded-3xl border border-slate-100 shadow-2xl">
+                <h4
+                    class="text-[10px] font-black text-slate-400 mb-6 uppercase tracking-widest flex items-center gap-3">
+                    <span class="w-1 h-3 bg-brand-primary rounded-full"></span>
+                    Protocol Lifecycle
+                </h4>
+                <ul class="space-y-6">
+                    <li class="flex items-center gap-4 text-xs font-bold text-slate-600">
+                        <div class="h-2.5 w-2.5 rounded-full bg-emerald-500 shadow-lg shadow-emerald-500/20"></div>
+                        Voter Identity Verified
+                    </li>
+                    <li class="flex items-center gap-4 text-xs font-bold text-slate-600">
+                        <div class="h-2.5 w-2.5 rounded-full bg-emerald-500 shadow-lg shadow-emerald-500/20"></div>
+                        Blinding Protocol Established
+                    </li>
+                    <li
+                        class="flex items-center gap-4 text-xs font-bold {% if signature %}text-slate-600{% else %}text-brand-primary animate-pulse{% endif %}">
+                        <div
+                            class="h-2.5 w-2.5 rounded-full {% if signature %}bg-emerald-500 shadow-lg shadow-emerald-500/20{% else %}bg-brand-primary{% endif %}">
+                        </div>
+                        {% if signature %}Commission Signature Verified{% else %}Awaiting Commission RSA Sign{% endif %}
+                    </li>
+                    <li class="flex items-center gap-4 text-xs font-bold text-slate-300 italic">
+                        <div class="h-2.5 w-2.5 rounded-full bg-slate-100"></div>
+                        Distributed Mining (Next Step)
+                    </li>
+                </ul>
+            </div>
+
+            <p class="mt-10 text-center text-[9px] text-slate-300 font-mono tracking-tighter uppercase font-bold">
+                BlockVote Infrastructure • Session ID: {{ session_id[:12] if session_id else '---' }}</p>
+        </aside>
+    </div>
+</main>
+{% endblock %}

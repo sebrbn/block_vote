@@ -1,41 +1,175 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Trusted Setup Ceremony</title>
-    <style>
-        body { font-family: sans-serif; text-align: center; padding: 40px; background-color: #2c3e50; color: white; }
-        .container { background: #34495e; padding: 30px; border-radius: 10px; display: inline-block; max-width: 700px; width: 100%; box-shadow: 0px 4px 10px rgba(0,0,0,0.5); text-align: left; }
-        .share-box { background: #111; color: #0f0; padding: 10px; font-family: monospace; border-radius: 5px; overflow-x: auto; font-size: 14px; margin-bottom: 10px; border: 1px solid #555; }
-        button { padding: 12px 24px; border: none; border-radius: 4px; cursor: pointer; color: white; font-weight: bold; background-color: #e74c3c; width: 100%; font-size: 16px; }
-        button:hover { background-color: #c0392b; }
-        .warning { color: #f1c40f; font-size: 14px; margin-bottom: 20px; text-align: center; }
-        a.button-link { display: block; text-align: center; margin-top: 20px; color: #3498db; text-decoration: none; font-weight: bold; }
-    </style>
-</head>
-<body>
+{% extends "base.html" %}
 
-    <div class="container">
-        <h1 style="text-align: center;">🔐 Trusted Setup Ceremony</h1>
-        <p class="warning">⚠️ In production, this runs on an offline, air-gapped machine.</p>
+{% block title %}BlockVote | Key Reconstruction Ceremony{% endblock %}
 
-        <p>Generate the dynamic Master Key and split it into 5 physical shares using Shamir's Secret Sharing. The Master Key will not be stored on the server.</p>
-        
-        <form action="/generate_setup" method="POST">
-            <button type="submit" {% if active %}disabled{% endif %}>GENERATE SHARES</button>
-        </form>
-
-        {% if generated %}
-            <div style="margin-top: 25px;">
-                <h3 style="color: #2ecc71;">✅ Keys Generated Successfully</h3>
-                <p>Distribute these securely to 5 different Admins (Copy them now):</p>
-                {% for share in generated %}
-                    <div class="share-box">{{ share }}</div>
-                {% endfor %}
+{% block content %}
+<main class="max-w-4xl mx-auto px-4 py-12 flex items-center justify-center min-h-[80vh] w-full">
+    <div class="w-full">
+        <!-- Ceremonial Header -->
+        <header class="text-center mb-16">
+            <h1 class="text-4xl font-black text-slate-900 tracking-tighter italic mb-4">Master Key Generation</h1>
+            <p class="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] font-bold">Shamir's Secret
+                Sharing Reconstruction Protocol.</p>
+            <div class="mt-8 flex justify-center grayscale opacity-40">
+                <div class="flex items-center gap-6">
+                    <div class="h-px w-16 bg-slate-300"></div>
+                    <svg class="h-6 w-6 text-brand-primary" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+                        <path
+                            d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
+                            stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"></path>
+                    </svg>
+                    <div class="h-px w-16 bg-slate-300"></div>
+                </div>
             </div>
-        {% endif %}
+        </header>
 
-        <a href="/admin" class="button-link">Go to Live Admin Console ➔</a>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-stretch">
+            <!-- Share Submission Card -->
+            <section
+                class="bg-white p-12 rounded-[40px] shadow-2xl border border-slate-100 flex flex-col relative group overflow-hidden">
+                <div class="absolute inset-0 bg-brand-primary/5 pointer-events-none"></div>
+
+                <div class="relative">
+                    <h3 class="text-xl font-black text-slate-900 mb-2 italic tracking-tight">Recover Fragment</h3>
+                    <p class="text-[10px] uppercase font-bold text-slate-400 tracking-widest mb-10">Commission Member
+                        Input</p>
+
+                    {% if generated %}
+                    <!-- 🔑 Display Generated Shares to Admins -->
+                    <div class="mb-8">
+                        <h4
+                            class="text-xs font-black text-brand-primary uppercase tracking-widest mb-4 flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+                                <path
+                                    d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
+                                    stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"></path>
+                            </svg>
+                            Distribute These Shares Securely
+                        </h4>
+                        <div class="space-y-3">
+                            {% for share in generated %}
+                            <div class="p-4 bg-slate-50 border border-slate-200 rounded-xl relative group">
+                                <code
+                                    class="text-[10px] font-mono text-slate-700 font-bold block break-all">{{ share }}</code>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <p class="mt-4 text-[9px] text-red-500 font-bold uppercase tracking-widest italic">⚠️ Warning:
+                            These will never be shown again.</p>
+                    </div>
+                    {% elif not active %}
+                    <!-- ⚡ Generate Master Key Action -->
+                    <div class="mb-10 p-6 bg-brand-primary/5 rounded-2xl border border-brand-primary/20 text-center">
+                        <p class="text-[10px] text-slate-600 font-bold mb-4 uppercase tracking-widest">Election requires
+                            a new cryptographic Master Key.</p>
+                        <form action="/generate_setup" method="POST">
+                            <button
+                                class="w-full py-4 bg-slate-900 hover:bg-black text-white font-black rounded-xl transition-all shadow-xl uppercase tracking-widest text-[10px] active:scale-[0.98]"
+                                type="submit">
+                                Generate 5 Master Shares
+                            </button>
+                        </form>
+                    </div>
+                    {% endif %}
+
+                    <form action="/submit_share" method="POST" class="space-y-8">
+                        <div>
+                            <label
+                                class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 ml-1"
+                                for="share_input">Secret Share (Hex Token)</label>
+                            <textarea
+                                class="w-full px-6 py-6 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-brand-primary outline-none transition-all placeholder:text-slate-200 text-xs font-mono font-bold text-slate-900 shadow-inner h-32 resize-none"
+                                id="share_input" name="share_input" placeholder="(1, 12345...)" required></textarea>
+                            <p
+                                class="mt-3 text-[9px] text-slate-400 font-bold uppercase tracking-widest italic ml-1 opacity-60">
+                                Paste your unique commission share tuple</p>
+                        </div>
+
+                        <button
+                            class="w-full py-5 bg-brand-primary hover:bg-brand-secondary text-white font-black rounded-2xl transition-all shadow-2xl shadow-blue-500/10 uppercase tracking-widest text-[11px] active:scale-[0.98] group/btn"
+                            type="submit">
+                            Deposit Share into Vault
+                            <svg class="inline w-4 h-4 ml-2 group-hover/btn:translate-y-px transition-transform"
+                                fill="none" stroke="currentColor" viewbox="0 0 24 24">
+                                <path d="M19 13l-7 7-7-7m14-8l-7 7-7-7" stroke-linecap="round" stroke-linejoin="round"
+                                    stroke-width="2.5"></path>
+                            </svg>
+                        </button>
+                    </form>
+                </div>
+            </section>
+
+            <!-- Status & Persistence Card -->
+            <section class="flex flex-col gap-8">
+                <div
+                    class="bg-white p-10 rounded-3xl border border-slate-100 shadow-2xl flex-1 relative overflow-hidden group">
+                    <div
+                        class="absolute top-0 right-0 p-8 text-emerald-500/10 group-hover:scale-110 transition-transform">
+                        <svg class="h-24 w-24" fill="currentColor" viewbox="0 0 20 20">
+                            <path clip-rule="evenodd"
+                                d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                                fill-rule="evenodd"></path>
+                        </svg>
+                    </div>
+
+                    <h3
+                        class="text-[10px] font-black text-slate-400 mb-8 uppercase tracking-[0.2em] flex items-center gap-3">
+                        <span
+                            class="w-1.5 h-4 bg-emerald-500 rounded-full shadow-[0_0_10px_rgba(16,185,129,0.3)]"></span>
+                        Reconstruction Status
+                    </h3>
+
+                    <div class="space-y-8 relative">
+                        <div>
+                            <div class="flex justify-between items-end mb-3">
+                                <span class="text-[11px] font-black text-slate-900 italic tracking-tight">Threshold
+                                    Persistence</span>
+                                <span class="text-xs font-black text-brand-primary italic">{{ shares|length }}/3</span>
+                            </div>
+                            <div
+                                class="w-full bg-slate-50 rounded-full h-3 border border-slate-100 shadow-inner overflow-hidden">
+                                <div class="bg-brand-primary h-full transition-all duration-1000 shadow-[0_0_15px_rgba(37,99,235,0.3)]"
+                                    style="width: {{ (shares|length / 3 * 100)|round }}%;"></div>
+                            </div>
+                        </div>
+
+                        <ul class="space-y-4">
+                            {% for i in range(1, 4) %}
+                            <li
+                                class="flex items-center justify-between p-4 rounded-xl border {% if shares|length >= i %}bg-emerald-50 border-emerald-100 text-emerald-700{% else %}bg-slate-50/50 border-slate-100 text-slate-300 italic{% endif %} transition-all">
+                                <div class="flex items-center gap-4">
+                                    <div
+                                        class="w-6 h-6 rounded-lg {% if shares|length >= i %}bg-emerald-500{% else %}bg-slate-200{% endif %} flex items-center justify-center text-white shadow-sm">
+                                        <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+                                            <path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"
+                                                stroke-width="3"></path>
+                                        </svg>
+                                    </div>
+                                    <span class="text-[10px] font-black uppercase tracking-widest">Share Segment 0{{ i
+                                        }}</span>
+                                </div>
+                                <span class="text-[9px] font-black uppercase tracking-tighter">{% if shares|length >= i
+                                    %}Recovered{% else %}Awaiting{% endif %}</span>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+
+                <div
+                    class="bg-slate-900 p-8 rounded-3xl border border-slate-800 shadow-2xl flex items-center justify-between">
+                    <div>
+                        <p class="text-white text-[10px] font-black uppercase tracking-widest mb-1.5">Go Back to Safety
+                        </p>
+                        <p class="text-slate-500 text-[10px] font-medium tracking-tight">Access Restricted Console</p>
+                    </div>
+                    <a href="/admin"
+                        class="px-6 py-3 bg-white/5 hover:bg-white/10 text-white border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95">
+                        Cancel Ceremony
+                    </a>
+                </div>
+            </section>
+        </div>
     </div>
-
-</body>
-</html>
+</main>
+{% endblock %}

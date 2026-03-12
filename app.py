@@ -55,7 +55,7 @@ def home():
 def send_otp():
     user_id = request.form['userid'].strip().upper()
     
-    # 1. Check Format: Validate RSET UID format (U + exactly 7 digits)
+    # 🛑 1. SECURITY CHECK: Validate RSET UID format (U + exactly 7 digits)
     if not re.match(r'^U\d{7}$', user_id):
         return render_template('login.html', otp_sent=False, error="Invalid UID! Format must be 'U' followed by 7 numbers (e.g., U2303181).")
     
@@ -248,30 +248,9 @@ def vote_success():
     if not user_id:
             return redirect(url_for('home'))
 
-    return """
-    <div style="text-align: center; padding: 100px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
-        <div style="background: white; display: inline-block; padding: 40px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
-            <h1 style="color: #28a745; font-size: 48px; margin-bottom: 10px;">✅ Vote Secured</h1>
-            <p style="color: #666; font-size: 18px; margin-bottom: 30px;">
-                Your ballot has been cryptographically signed and mined into the blockchain ledger.
-            </p>
-            <hr style="border: 0; border-top: 1px solid #eee; margin-bottom: 30px;">
-            <a href="/logout" style="
-                background-color: #007bff; 
-                color: white; 
-                padding: 15px 35px; 
-                text-decoration: none; 
-                border-radius: 8px; 
-                font-weight: bold; 
-                font-size: 16px;
-                display: inline-block;
-                transition: background 0.3s;
-            " onmouseover="this.style.backgroundColor='#0056b3'" onmouseout="this.style.backgroundColor='#007bff'">
-                Logout & Terminate Session
-            </a>
-        </div>
-    </div>
-    """
+    # Get the latest block from the chain to display on success page
+    latest_block = vote_chain.chain[-1] if vote_chain.chain else None
+    return render_template('success.html', block=latest_block)
 
 
 # ----------------------------------------------------------------
@@ -295,7 +274,7 @@ def setup_page():
     except ValueError:
         pass # Failsafe for weird IP formats
 
-    return render_template('setup.html', generated=generated_shares, active=is_election_active)
+    return render_template('setup.html', generated=generated_shares, shares=submitted_shares, active=is_election_active)
 
 @app.route('/results')
 def voter_results():
@@ -383,10 +362,10 @@ def admin_login():
             print("✅ SECURE LOG: Admin authenticated via RSA Challenge-Response.")
             return redirect(url_for('admin_page'))
         else:
-            return "<h1>🚫 Invalid RSA Signature</h1><a href='/admin'>Try Again</a>", 403
+            return render_template('admin_login.html', challenge=challenge, error="Invalid RSA Signature. Verification failed.")
             
     except ValueError:
-        return "<h1>🚫 Error: RSA Signature must be a number.</h1><a href='/admin'>Try Again</a>", 400
+        return render_template('admin_login.html', challenge=challenge, error="RSA Signature must be a numeric value.")
     
 @app.route('/admin')
 def admin_page():
@@ -412,32 +391,19 @@ def admin_page():
         challenge = secrets.token_hex(4)
         session['login_challenge'] = challenge
         
-            # 2. Show the Challenge-Response UI
-        return f"""
-        <div style='text-align: center; padding: 50px; font-family: sans-serif;'>
-            <h2>🔐 RSA Zero-Knowledge Login</h2>
-            <p>To prove your identity, sign this random challenge using your offline private key:</p>
-            <div style='margin: 20px;'>
-                <strong>Server Challenge:</strong><br>
-                <code style='display: inline-block; margin-top: 10px; font-size: 24px; background: #eee; padding: 10px 15px; border-radius: 5px; border: 1px solid #ccc;'>{challenge}</code>
-            </div>
-            <form action='/admin_login' method='POST'>
-                <input type='text' name='signature' placeholder='Enter numeric RSA Signature' required style='padding: 10px; width: 300px; font-family: monospace; text-align: center;'>
-                <br><br>
-                <button type='submit' style='padding: 10px 20px; background: #28a745; color: white; border: none; font-weight: bold; cursor: pointer; border-radius: 5px;'>
-                    Verify RSA Signature
-                </button>
-            </form>
-        </div>
-        """
+        # 2. Show the Challenge-Response UI
+        return render_template('admin_login.html', challenge=challenge)
 
     return render_template(
         'admin.html', 
         submitted_count=len(submitted_shares), 
         active=is_election_active,
-        candidates=candidates_list,  # Pass the candidates to the HTML
+        candidates=candidates_list,
         error=None,
-        pending_requests=pending_signature_requests
+        sig_requests=pending_signature_requests,
+        database=student_db,
+        nodes=list(vote_chain.nodes),
+        shares=submitted_shares
     )
 
 @app.route('/admin/sign_ballot/<user_id>', methods=['POST'])
@@ -563,17 +529,27 @@ def explorer():
 # ----------------------------------------------------------------
 @app.route('/network')
 def network_page():
-    return render_template('network.html', port=request.host.split(':')[-1])
+    return render_template('network.html', nodes=list(vote_chain.nodes))
 
 @app.route('/nodes/register', methods=['POST'])
 def register_nodes():
-    values = request.get_json()
-    nodes = values.get('nodes')
+    if request.content_type == 'application/json':
+        values = request.get_json()
+        nodes = values.get('nodes')
+    else:
+        nodes = request.form.get('nodes')
+        if nodes:
+            nodes = [nodes] # If single string from form
+            
     if nodes is None:
         return "Error: Please supply a valid list of nodes", 400
+        
     for node in nodes:
         vote_chain.register_node(node)
-    return {"message": "New nodes have been added", "total_nodes": list(vote_chain.nodes)}, 201
+        
+    if request.content_type == 'application/json':
+        return {"message": "New nodes have been added", "total_nodes": list(vote_chain.nodes)}, 201
+    return redirect(url_for('network_page'))
 
 @app.route('/nodes/resolve', methods=['GET'])
 def consensus():

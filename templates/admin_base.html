@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+
+{% block title %}BlockVote | Admin Console{% block extra_title %}{% endblock %}{% endblock %}
+
+{% block body_class %}h-screen w-full flex flex-col overflow-hidden bg-slate-50 text-slate-900 font-sans{% endblock %}
+{% block main_class %}flex-grow flex flex-row overflow-hidden w-full h-full{% endblock %}
+
+{% block extra_styles %}
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+body {
+font-family: 'Inter', sans-serif;
+}
+.custom-scrollbar::-webkit-scrollbar {
+width: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+background: #f1f5f9;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+background: #cbd5e1;
+border-radius: 10px;
+}
+.status-pulse {
+animation: pulse-animation 2s infinite;
+}
+@keyframes pulse-animation {
+0% { box-shadow: 0 0 0 0px rgba(5, 150, 105, 0.4); }
+100% { box-shadow: 0 0 0 10px rgba(5, 150, 105, 0); }
+}
+{% endblock %}
+
+{% block header %}{% endblock %}
+{% block footer %}{% endblock %}
+
+{% block content %}
+<!-- Sidebar Navigation -->
+<aside class="w-64 bg-white border-r border-slate-200 flex flex-col shrink-0 shadow-sm">
+    <div class="p-8">
+        <a href="/admin" class="flex items-center gap-3 text-brand-primary group">
+            <svg class="h-8 w-8 text-brand-primary group-hover:scale-110 transition-transform" fill="none"
+                stroke="currentColor" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path
+                    d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                    stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"></path>
+            </svg>
+            <h1 class="font-black text-xl tracking-tighter text-slate-900 italic">Block<span
+                    class="text-brand-primary">Vote</span></h1>
+        </a>
+        <p class="text-[10px] uppercase tracking-widest text-slate-400 mt-1 ml-11 font-bold">Admin Console</p>
+    </div>
+    <nav class="flex-1 px-4 space-y-1.5 mt-4 overflow-y-auto custom-scrollbar">
+        <a class="flex items-center gap-3 px-4 py-3 text-sm font-bold rounded-xl bg-brand-primary/5 text-brand-primary border border-brand-primary/10 transition-all"
+            href="/admin">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+                <path
+                    d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6">
+                </path>
+            </svg>
+            Console Home
+        </a>
+        <a class="flex items-center gap-3 px-4 py-3 text-sm font-bold rounded-xl text-slate-600 hover:bg-slate-50 hover:text-brand-primary transition-all"
+            href="/voter_registry">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+                <path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+            </svg>
+            Voter Registry
+        </a>
+        <a class="flex items-center gap-3 px-4 py-3 text-sm font-bold rounded-xl text-slate-600 hover:bg-slate-50 hover:text-brand-primary transition-all"
+            href="/explorer">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+                <path
+                    d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9">
+                </path>
+            </svg>
+            Blockchain Explorer
+        </a>
+        <a class="flex items-center gap-3 px-4 py-3 text-sm font-bold rounded-xl text-slate-600 hover:bg-slate-50 hover:text-brand-primary transition-all"
+            href="/network">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+                <path
+                    d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10">
+                </path>
+            </svg>
+            Network Nodes
+        </a>
+        <hr class="border-slate-100 mx-4 my-6">
+        <a class="flex items-center gap-3 px-4 py-3 text-sm font-bold rounded-xl text-slate-500 hover:bg-red-50 hover:text-red-600 transition-all"
+            href="/logout">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+                <path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1">
+                </path>
+            </svg>
+            Logout session
+        </a>
+    </nav>
+</aside>
+
+<!-- Main Dashboard Content -->
+<div class="flex-1 flex flex-col overflow-hidden">
+    <!-- Header Stats -->
+    <header class="h-16 border-b border-slate-200 flex items-center justify-between px-8 bg-white/80 backdrop-blur-md">
+        <h2 class="text-sm font-black uppercase tracking-widest text-slate-600 italic">{% block page_title %}Security
+            Overview{% endblock %}</h2>
+        <div class="flex items-center gap-6">
+            <div class="flex items-center gap-3">
+                <span
+                    class="w-2.5 h-2.5 rounded-full {% if active %}bg-emerald-500 status-pulse{% else %}bg-slate-300{% endif %}"></span>
+                <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    {% if active %}Secure Link: LIVE{% else %}Protocol: Setup{% endif %}
+                </span>
+            </div>
+            <div class="h-6 w-px bg-slate-200"></div>
+            <div class="text-[10px] font-black uppercase tracking-widest">
+                <span class="text-slate-400">Auth:</span>
+                <span class="text-brand-primary ml-2">RSA Verified</span>
+            </div>
+        </div>
+    </header>
+
+    <div class="flex-1 overflow-y-auto p-10 custom-scrollbar bg-slate-50/50">
+        {% block admin_content %}{% endblock %}
+    </div>
+
+    <!-- Footer Terminal -->
+    <footer
+        class="h-8 bg-white border-t border-slate-200 px-6 flex items-center justify-between text-[9px] text-slate-400 font-mono font-bold">
+        <div class="flex gap-4">
+            <span class="uppercase">SECURE LOG: Admin session active.</span>
+            <span class="text-emerald-500 uppercase tracking-tighter">Status: Handshake Complete</span>
+        </div>
+        <div class="flex items-center gap-4">
+            <div class="flex gap-1">
+                <span class="w-1 h-1 rounded-full bg-slate-200"></span>
+                <span class="w-1 h-1 rounded-full bg-slate-200"></span>
+                <span class="w-1 h-1 rounded-full bg-slate-200"></span>
+            </div>
+            <span class="uppercase tracking-tighter">Chain Persistence: 100%</span>
+        </div>
+    </footer>
+</div>
+{% endblock %}

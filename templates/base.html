@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>{% block title %}BlockVote | Secure Voting{% endblock %}</title>
+    <!-- Tailwind CSS CDN with plugins -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <!-- Custom Tailwind Configuration -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            primary: '#2563eb',    // Blue 600
+                            secondary: '#1d4ed8',  // Blue 700
+                            accent: '#60a5fa',     // Blue 400
+                            dark: '#f8fafc',       // Slate 50 (Light Mode Background)
+                            surface: '#ffffff',    // White (Card Background)
+                            border: '#e2e8f0',     // Slate 200
+                            success: '#059669'     // Emerald 600
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .hidden-state {
+            display: none;
+        }
+
+        body {
+            background-color: #f8fafc;
+            color: #0f172a;
+        }
+
+            {
+            % block extra_styles %
+        }
+
+            {
+            % endblock %
+        }
+    </style>
+</head>
+
+<body
+    class="{% block body_class %}font-sans antialiased min-h-screen flex flex-col bg-brand-dark text-slate-900{% endblock %}">
+
+    <!-- BEGIN: MainHeader -->
+    {% block header %}
+    <header class="bg-brand-surface border-b border-brand-border py-4 shadow-sm" data-purpose="site-header">
+        <div class="container mx-auto px-4 flex items-center justify-between">
+            <a href="/" class="flex items-center space-x-3 hover:opacity-80 transition-opacity">
+                <!-- Secure Lock Icon -->
+                <svg class="h-8 w-8 text-brand-primary" fill="none" stroke="currentColor" viewbox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg">
+                    <path
+                        d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                        stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"></path>
+                </svg>
+                <span class="text-2xl font-black text-slate-900 tracking-tighter italic">Block<span
+                        class="text-brand-primary">Vote</span></span>
+            </a>
+            <nav class="flex items-center space-x-6">
+                {% block nav %}{% endblock %}
+                <div
+                    class="text-[10px] font-bold text-brand-primary bg-blue-50 px-3 py-1 rounded-full border border-brand-primary/20 uppercase tracking-widest">
+                    Official Portal
+                </div>
+            </nav>
+        </div>
+    </header>
+    {% endblock %}
+    <!-- END: MainHeader -->
+
+    <!-- BEGIN: MainContent -->
+    <main class="{% block main_class %}flex-grow flex items-center justify-center p-4{% endblock %}">
+        {% block content %}{% endblock %}
+    </main>
+    <!-- END: MainContent -->
+
+    <!-- BEGIN: SiteFooter -->
+    {% block footer %}
+    <footer class="py-12 bg-white border-t border-brand-border" data-purpose="page-footer">
+        <div class="container mx-auto px-4 max-w-4xl text-center">
+            <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-8">Security & Integrity
+                Assurance</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
+                <div class="bg-slate-50 p-6 rounded-2xl border border-brand-border shadow-sm">
+                    <h4 class="text-[10px] font-bold text-brand-primary mb-2 uppercase tracking-wider">Blockchain Layer
+                    </h4>
+                    <p class="text-[11px] text-slate-600 leading-relaxed">Votes are cryptographically hashed and
+                        appended to a distributed ledger for permanent immutability.</p>
+                </div>
+                <div class="bg-slate-50 p-6 rounded-2xl border border-brand-border shadow-sm">
+                    <h4 class="text-[10px] font-bold text-brand-primary mb-2 uppercase tracking-wider">Privacy Protocol
+                    </h4>
+                    <p class="text-[11px] text-slate-600 leading-relaxed">RSA blinding prevents correlation between user
+                        identity and ballot selection.</p>
+                </div>
+            </div>
+            <p class="mt-10 text-[10px] text-slate-400 font-mono font-medium">Powered by BlockVote Infrastructure v2.1.0
+            </p>
+        </div>
+    </footer>
+    {% endblock %}
+    <!-- END: SiteFooter -->
+
+    {% block scripts %}{% endblock %}
+</body>
+
+</html>

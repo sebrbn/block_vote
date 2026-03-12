@@ -1,205 +1,394 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Admin Multi-Sig Console</title>
-    <style>
-        body { font-family: sans-serif; text-align: center; padding: 40px; background-color: #f4f7f6; }
-        .container { background: white; padding: 30px; border-radius: 10px; display: inline-block; max-width: 600px; width: 100%; box-shadow: 0px 4px 10px rgba(0,0,0,0.1); text-align: left; }
-        .status { padding: 15px; border-radius: 5px; font-weight: bold; text-align: center; margin-bottom: 20px; }
-        .status-locked { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
-        .status-active { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
-        input[type="text"] { width: 70%; padding: 10px; margin-right: 10px; border: 1px solid #ccc; border-radius: 4px; font-family: monospace; }
-        button { padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; color: white; font-weight: bold; background-color: #28a745; }
-        .progress-bar { width: 100%; background-color: #e9ecef; border-radius: 5px; margin-top: 10px; height: 25px; }
-        .progress-fill { height: 100%; background-color: #ffc107; border-radius: 5px; text-align: center; color: black; font-size: 14px; font-weight: bold; line-height: 25px; transition: width 0.4s ease; }
-    </style>
-</head>
-<body>
+{% extends "admin_base.html" %}
 
-    <div class="container">
-        <h1 style="text-align: center;">🛡️ Live Election Console</h1>
+{% block page_title %}Network Governance & Secure Console{% endblock %}
 
-        {% if active %}
-            <div class="status status-active">✅ ELECTION IS LIVE & UNLOCKED</div>
-        {% else %}
-            <div class="status status-locked">🔒 ELECTION IS LOCKED</div>
-        {% endif %}
-
-        <div style="margin-bottom: 30px;">
-            <h3>Admin Authentication</h3>
-            <p>Enter your unique share to authorize the election start. Minimum threshold required: <strong>3 Admins</strong>.</p>
-            
-            {% if error %}
-                <div style="background: #f8d7da; color: #721c24; padding: 10px; border: 1px solid #f5c6cb; border-radius: 5px; margin-bottom: 15px; font-weight: bold;">
-                    ⛔ {{ error }}
-                </div>
-            {% endif %}
-
-            <form action="/submit_share" method="POST">
-                <input type="text" name="share_input" placeholder="(x, y)" required {% if active %}disabled{% endif %}>
-                <button type="submit" {% if active %}disabled{% endif %}>Submit</button>
-            </form>
-
-            <div style="margin-top: 25px;">
-                <strong>Authorization Progress: {{ submitted_count }} / 3 Shares Collected</strong>
-                <div class="progress-bar">
-                    {% if submitted_count == 0 %}
-                        <div class="progress-fill" style="width: 0%;">0%</div>
-                    {% elif submitted_count == 1 %}
-                        <div class="progress-fill" style="width: 33%;">33%</div>
-                    {% elif submitted_count == 2 %}
-                        <div class="progress-fill" style="width: 66%;">66%</div>
-                    {% elif submitted_count >= 3 %}
-                        <div class="progress-fill" style="width: 100%; background-color: #28a745; color: white;">100% UNLOCKED</div>
-                    {% endif %}
-
-                    <hr style="margin: 30px 0;">
-<hr style="margin: 40px 0;">
-
-<div style="max-width: 600px; margin: 0 auto; text-align: center; background: white; padding: 20px; border-radius: 10px; box-shadow: 0px 4px 10px rgba(0,0,0,0.1);">
-    <h2 style="color: #333;">📊 Live Election Results</h2>
-    <canvas id="resultsChart"></canvas>
-</div>
-<div style="display: flex; justify-content: space-between; align-items: center; background: #343a40; padding: 10px 20px; border-radius: 8px; margin-bottom: 20px;">
-    <span style="color: white; font-weight: bold; font-size: 18px;">🛡️ Election Control Center</span>
-    <a href="/admin/logout" style="
-        background-color: #dc3545; 
-        color: white; 
-        padding: 8px 16px; 
-        text-decoration: none; 
-        border-radius: 5px; 
-        font-size: 14px; 
-        font-weight: bold;
-        transition: background 0.3s;
-    " onmouseover="this.style.backgroundColor='#a71d2a'" onmouseout="this.style.backgroundColor='#dc3545'">
-        Exit & Lock Session
-    </a>
-</div>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-<script>
-    let resultsChart;
-
-    async function fetchResults() {
-        try {
-            const response = await fetch('/api/live_results');
-            if (!response.ok) return; // Fails silently if unauthorized
-            const data = await response.json();
-            
-            const candidates = Object.keys(data);
-            const votes = Object.values(data);
-
-            if (!resultsChart) {
-                // Draw the chart for the first time
-                const ctx = document.getElementById('resultsChart').getContext('2d');
-                resultsChart = new Chart(ctx, {
-                    type: 'bar',
-                    data: {
-                        labels: candidates,
-                        datasets: [{
-                            label: 'Total Votes Cast',
-                            data: votes,
-                            // Cool multi-color bars
-                            backgroundColor: ['#007bff', '#28a745', '#dc3545', '#ffc107', '#17a2b8', '#6610f2'],
-                            borderRadius: 5
-                        }]
-                    },
-                    options: {
-                        scales: {
-                            y: { beginAtZero: true, ticks: { stepSize: 1 } }
-                        },
-                        animation: { duration: 0 } // Disables the bouncy animation so auto-refresh looks smooth
-                    }
-                });
-            } else {
-                // Update the existing chart smoothly
-                resultsChart.data.labels = candidates;
-                resultsChart.data.datasets[0].data = votes;
-                resultsChart.update();
-            }
-        } catch (error) {
-            console.error("Error fetching live results:", error);
-        }
-    }
-
-    // Fetch immediately, then refresh every 3 seconds
-    fetchResults();
-    setInterval(fetchResults, 3000);
-</script>
-<div style="margin-top: 40px; padding: 25px; background: #fff; border-radius: 12px; border: 1px solid #eaeaea; box-shadow: 0 2px 5px rgba(0,0,0,0.02);">
-    <h3 style="margin-top: 0; color: #333; display: flex; align-items: center; gap: 10px;">
-        <span style="font-size: 24px;">👥</span> Candidate Management
-    </h3>
-    
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; align-items: start;">
-        
-        <div style="background: #fcfcfc; padding: 20px; border-radius: 8px; border: 1px dashed #ccc;">
-            <p style="margin-top: 0; font-size: 13px; color: #666; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px;">Register New Candidate</p>
-            <form action="/add_candidate" method="POST" style="display: flex; flex-direction: column; gap: 12px;">
-                <input type="text" name="candidate_name" placeholder="Full Name (e.g. Alice Smith)" required 
-                    style="padding: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; outline: none; transition: border 0.3s;"
-                    onfocus="this.style.borderColor='#007bff'">
-                <button type="submit" style="padding: 12px; background: #007bff; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; transition: transform 0.2s, background 0.3s;"
-                    onmouseover="this.style.background='#0056b3'; this.style.transform='translateY(-1px)'"
-                    onmouseout="this.style.background='#007bff'; this.style.transform='translateY(0)'">
-                    ➕ Add to Election
-                </button>
-            </form>
+{% block admin_content %}
+<div class="space-y-10">
+    <!-- Top Stats Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div class="bg-white p-8 rounded-3xl border border-slate-100 shadow-xl shadow-slate-200/50">
+            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-2">
+                <span class="w-1 h-3 bg-brand-primary rounded-full"></span>
+                Total Registered Voters
+            </p>
+            <p class="text-3xl font-black text-slate-900 italic tracking-tighter">{{ database|length if database else 0
+                }}</p>
+            <div class="mt-5 flex items-center text-[10px] text-emerald-600 font-black uppercase tracking-widest">
+                <svg class="w-3 h-3 mr-1.5" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+                    <path d="M5 10l7-7m0 0l7 7m-7-7v18" stroke-linecap="round" stroke-linejoin="round" stroke-width="3">
+                    </path>
+                </svg>
+                Audit Complete
+            </div>
         </div>
-
-        <div>
-            <p style="margin-top: 0; font-size: 13px; color: #666; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px;">Nominated Candidates</p>
-            <div style="max-height: 180px; overflow-y: auto; background: #f8f9fa; border-radius: 8px; padding: 10px; border: 1px solid #eee;">
-                {% if candidates %}
-                    <ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px;">
-                        {% for candidate in candidates %}
-                            <li style="background: white; padding: 10px 15px; border-radius: 6px; border-left: 4px solid #007bff; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-                                <span style="font-weight: 600; color: #333;">{{ candidate }}</span>
-                                <span style="font-size: 11px; background: #e7f3ff; color: #007bff; padding: 2px 8px; border-radius: 10px; font-weight: bold;">Verified</span>
-                            </li>
-                        {% endfor %}
-                    </ul>
+        <div class="bg-white p-8 rounded-3xl border border-slate-100 shadow-xl shadow-slate-200/50">
+            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-2">
+                <span class="w-1 h-3 bg-brand-primary rounded-full"></span>
+                Participation Rate
+            </p>
+            <p class="text-3xl font-black text-brand-primary italic tracking-tighter">
+                {% if database %}
+                {% set voted_count = 0 %}
+                {% for uid, data in database.items() if data.voted %}{% set voted_count = voted_count + 1 %}{% endfor %}
+                {{ (voted_count / database|length * 100)|round(1) if database|length > 0 else 0 }}%
                 {% else %}
-                    <div style="text-align: center; padding: 20px; color: #999; font-style: italic; font-size: 14px;">
-                        No candidates registered yet...
-                    </div>
+                0.0%
                 {% endif %}
+            </p>
+            <div
+                class="mt-5 w-full bg-slate-50 rounded-full h-1.5 border border-slate-100 overflow-hidden shadow-inner">
+                <div class="bg-brand-primary h-full shadow-[0_0_10px_rgba(37,99,235,0.2)]" style="width: 68%;"></div>
             </div>
         </div>
-
+        <div class="bg-white p-8 rounded-3xl border border-slate-100 shadow-xl shadow-slate-200/50">
+            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-2">
+                <span class="w-1 h-3 bg-brand-primary rounded-full"></span>
+                Active Mesh Nodes
+            </p>
+            <p class="text-3xl font-black text-slate-900 italic tracking-tighter">{{ nodes|length if nodes else 1 }}</p>
+            <div class="mt-5 flex items-center text-[10px] text-slate-400 font-black uppercase tracking-widest italic">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 mr-2.5"></span>
+                P2P Link Secured
+            </div>
+        </div>
+        <div class="bg-white p-8 rounded-3xl border border-slate-100 shadow-xl shadow-slate-200/50">
+            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-2">
+                <span class="w-1 h-3 bg-brand-primary rounded-full"></span>
+                Ledger Persistence
+            </p>
+            <p class="text-3xl font-black text-emerald-600 italic tracking-tighter">100%</p>
+            <p class="mt-5 text-[10px] text-slate-400 font-black uppercase tracking-widest leading-none italic">SLA
+                Compliant</p>
+        </div>
     </div>
-</div>
-<div style="margin-top: 50px; border-top: 2px solid #eee; padding-top: 20px;">
-    <a href="/voter_registry" style="display: inline-block; padding: 15px 25px; background: #17a2b8; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">
-        📊 View Live Voter Registry & Audit Log
-    </a>
-</div>
 
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
+        <!-- Section: Key Ceremony & Setup -->
+        <section class="bg-white rounded-3xl border border-slate-100 shadow-2xl overflow-hidden">
+            <div class="p-8 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+                <h3 class="text-xs font-black text-slate-900 uppercase tracking-widest italic">Trusted Setup Ceremony
+                </h3>
+                <span class="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] font-mono">Phase:
+                    RECONSTRUCTION</span>
+            </div>
+            <div class="p-10">
+                <div class="relative pt-1">
+                    <div class="flex mb-5 items-center justify-between">
+                        <div>
+                            <span
+                                class="text-[10px] font-black inline-block py-1.5 px-4 uppercase rounded-xl text-brand-primary bg-brand-primary/5 border border-brand-primary/10 tracking-widest shadow-sm">
+                                Master Key Entropy Progress
+                            </span>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-xs font-black text-slate-900 italic tracking-tighter">
+                                {{ shares|length }}/3 Shares Recovered
+                            </span>
+                        </div>
+                    </div>
+                    <div
+                        class="overflow-hidden h-3 mb-10 text-xs flex rounded-full bg-slate-50 border border-slate-100 shadow-inner">
+                        <div class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-brand-primary shadow-[0_0_15px_rgba(37,99,235,0.3)] transition-all duration-1000"
+                            style="width: {{ (shares|length / 3 * 100)|round }}%;"></div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-3 gap-6 mb-10">
+                    {% for i in range(1, 4) %}
+                    <div
+                        class="p-6 rounded-2xl border border-slate-100 text-center transition-all {% if shares|length >= i %}bg-emerald-50 border-emerald-200 shadow-lg shadow-emerald-500/5{% else %}bg-slate-50/50 opacity-60{% endif %}">
+                        <svg class="h-8 w-8 mx-auto mb-3 {% if shares|length >= i %}text-emerald-600{% else %}text-slate-300{% endif %}"
+                            fill="none" stroke="currentColor" viewbox="0 0 24 24">
+                            <path
+                                d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
+                                stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"></path>
+                        </svg>
+                        <span
+                            class="block text-[10px] font-black uppercase tracking-tighter {% if shares|length >= i %}text-emerald-700{% else %}text-slate-400{% endif %}">SEG_0{{
+                            i }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <a href="/setup"
+                    class="block w-full text-center py-5 bg-slate-900 border border-slate-800 text-white font-black rounded-2xl transition-all shadow-xl hover:bg-black active:scale-[0.98] uppercase tracking-widest text-[10px]">
+                    1. Reconstruct Primary Secret Key
+                </a>
+            </div>
+        </section>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
+            <!-- Section: Key Ceremony & Setup -->
+            <section class="bg-white rounded-3xl border border-slate-100 shadow-2xl overflow-hidden">
+                <div class="p-8 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+                    <h3 class="text-xs font-black text-slate-900 uppercase tracking-widest italic">Trusted Setup
+                        Ceremony
+                    </h3>
+                    <span class="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] font-mono">Phase:
+                        RECONSTRUCTION</span>
+                </div>
+                <div class="p-10">
+                    <div class="relative pt-1">
+                        <div class="flex mb-5 items-center justify-between">
+                            <div>
+                                <span
+                                    class="text-[10px] font-black inline-block py-1.5 px-4 uppercase rounded-xl text-brand-primary bg-brand-primary/5 border border-brand-primary/10 tracking-widest shadow-sm">
+                                    Master Key Entropy Progress
+                                </span>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-xs font-black text-slate-900 italic tracking-tighter">
+                                    {{ shares|length }}/3 Shares Recovered
+                                </span>
+                            </div>
+                        </div>
+                        <div
+                            class="overflow-hidden h-3 mb-10 text-xs flex rounded-full bg-slate-50 border border-slate-100 shadow-inner">
+                            <div class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-brand-primary shadow-[0_0_15px_rgba(37,99,235,0.3)] transition-all duration-1000"
+                                style="width: {{ (shares|length / 3 * 100)|round }}%;"></div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-6 mb-10">
+                        {% for i in range(1, 4) %}
+                        <div
+                            class="p-6 rounded-2xl border border-slate-100 text-center transition-all {% if shares|length >= i %}bg-emerald-50 border-emerald-200 shadow-lg shadow-emerald-500/5{% else %}bg-slate-50/50 opacity-60{% endif %}">
+                            <svg class="h-8 w-8 mx-auto mb-3 {% if shares|length >= i %}text-emerald-600{% else %}text-slate-300{% endif %}"
+                                fill="none" stroke="currentColor" viewbox="0 0 24 24">
+                                <path
+                                    d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
+                                    stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"></path>
+                            </svg>
+                            <span
+                                class="block text-[10px] font-black uppercase tracking-tighter {% if shares|length >= i %}text-emerald-700{% else %}text-slate-400{% endif %}">SEG_0{{
+                                i }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <a href="/setup"
+                        class="block w-full text-center py-5 bg-slate-900 border border-slate-800 text-white font-black rounded-2xl transition-all shadow-xl hover:bg-black active:scale-[0.98] uppercase tracking-widest text-[10px]">
+                        1. Reconstruct Primary Secret Key
+                    </a>
+                </div>
+            </section>
+
+            <!-- Section: Pending Signature Requests -->
+            <section class="bg-white rounded-3xl border border-slate-100 shadow-2xl overflow-hidden flex flex-col">
+                <div class="p-8 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+                    <h3 class="text-xs font-black text-slate-900 uppercase tracking-widest italic">Authorization
+                        Handshake
+                        Queue</h3>
+                    <span
+                        class="bg-brand-primary text-white text-[9px] font-black px-3 py-1 rounded-xl uppercase font-mono shadow-lg shadow-blue-500/20 tracking-widest">{{
+                        sig_requests|length if sig_requests else 0 }} Pending</span>
+                </div>
+                <div class="p-10 flex-1 flex flex-col">
+                    {% if sig_requests %}
+                    <div class="space-y-5">
+                        {% for request_id, data in sig_requests.items() %}
+                        <div
+                            class="flex items-center justify-between p-6 bg-slate-50/50 rounded-2xl border border-slate-100 hover:border-brand-primary/30 transition-all group shadow-sm">
+                            <div class="flex flex-col">
+                                <span
+                                    class="text-[9px] font-black text-brand-primary uppercase tracking-widest mb-1.5 flex items-center gap-2">
+                                    <span class="w-1 h-3 bg-brand-primary rounded-full"></span>
+                                    RSA Blinded Ballot
+                                </span>
+                                <code
+                                    class="text-[10px] font-mono text-slate-500 truncate w-56 font-bold bg-white p-2 rounded-lg border border-slate-100">{{ data.blinded_vote }}</code>
+                            </div>
+                            <form action="/admin/sign_ballot/{{ request_id }}" method="POST">
+                                <button
+                                    class="px-6 py-3 bg-brand-primary text-white hover:bg-brand-secondary border border-brand-primary/10 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg active:scale-90"
+                                    type="submit">
+                                    Sign Handshake
+                                </button>
+                            </form>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="flex-1 flex flex-col items-center justify-center py-16">
+                        <div
+                            class="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-6 border border-slate-100 shadow-inner">
+                            <svg class="w-10 h-10 text-slate-200" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+                                <path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"
+                                    stroke-width="3">
+                                </path>
+                            </svg>
+                        </div>
+                        <p
+                            class="text-[11px] font-black uppercase tracking-widest text-slate-300 italic tracking-widest">
+                            Queue is currently verified</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </section>
+        </div>
+
+        <!-- Section: Live Election Results Chart -->
+        <section class="bg-white rounded-3xl border border-slate-100 shadow-2xl overflow-hidden mt-10">
+            <div class="p-8 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+                <h3 class="text-xs font-black text-slate-900 uppercase tracking-widest italic">📊 Live Election Tally
+                </h3>
+                <span class="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] font-mono italic">Real-time
+                    Node Propagation</span>
+            </div>
+            <div class="p-10">
+                <div class="max-w-3xl mx-auto">
+                    <canvas id="resultsChart" height="150"></canvas>
                 </div>
             </div>
-        </div>
-        
+        </section>
+
+        <!-- Voter Registration & Admin Management -->
+        <section class="bg-white rounded-3xl border border-slate-100 shadow-2xl overflow-hidden mt-10">
+            <div class="p-8 border-b border-slate-100 bg-slate-50/50">
+                <h3 class="text-xs font-black text-slate-900 uppercase tracking-widest italic">Election Registry &
+                    Candidate
+                    Configuration</h3>
+            </div>
+            <div class="p-10">
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-12">
+                    <!-- Registration Form -->
+                    <div class="lg:col-span-12 xl:col-span-5 space-y-10">
+                        <div>
+                            <h4
+                                class="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 mb-8 flex items-center gap-3">
+                                <span
+                                    class="w-1.5 h-4 bg-brand-primary rounded-full shadow-[0_0_10px_rgba(37,99,235,0.3)]"></span>
+                                Append Official Nominee
+                            </h4>
+                            <form action="/add_candidate" method="POST" class="space-y-6">
+                                <div>
+                                    <label
+                                        class="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2.5 ml-1"
+                                        for="candidate_name">Identity Designation</label>
+                                    <input
+                                        class="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-brand-primary outline-none transition-all placeholder:text-slate-300 text-sm font-bold text-slate-900 shadow-inner"
+                                        id="candidate_name" name="candidate_name"
+                                        placeholder="Candidate Designation Alpha-1" required type="text" />
+                                </div>
+                                <button
+                                    class="w-full py-5 bg-brand-primary hover:bg-brand-secondary text-white font-black rounded-2xl transition-all shadow-2xl shadow-blue-500/10 uppercase tracking-widest text-[11px] active:scale-[0.98]"
+                                    type="submit">
+                                    2. Append to Immutable Ballot
+                                </button>
+                            </form>
+                        </div>
+
+                        <div class="pt-10 border-t border-slate-100">
+                            <a href="/voter_registry"
+                                class="flex items-center justify-between p-6 bg-slate-900 text-white rounded-2xl hover:bg-black transition-all shadow-xl group">
+                                <span class="text-[10px] font-black uppercase tracking-[0.2em]">Open Registry
+                                    Audit</span>
+                                <svg class="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none"
+                                    stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                        d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+                                </svg>
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Admin Status -->
+                    <div class="lg:col-span-12 xl:col-span-7">
+                        <h4
+                            class="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 mb-8 flex items-center gap-3">
+                            <span
+                                class="w-1.5 h-4 bg-emerald-500 rounded-full shadow-[0_0_10px_rgba(16,185,129,0.3)]"></span>
+                            Live Ballot Snapshot
+                        </h4>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            {% for candidate in candidates %}
+                            <div
+                                class="p-6 bg-slate-50/50 rounded-2xl border border-slate-100 flex items-center justify-between shadow-sm group hover:border-brand-primary/30 hover:bg-white transition-all">
+                                <span
+                                    class="text-xs font-black text-slate-700 italic group-hover:text-brand-primary transition-colors tracking-tight">{{
+                                    candidate }}</span>
+                                <span
+                                    class="bg-blue-50 text-brand-primary text-[9px] font-black px-3 py-1 rounded-xl border border-brand-primary/10 uppercase tracking-widest">Nominated</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
     </div>
-<script>
-    // 🔄 THE AUTO-SYNC GOSSIP PROTOCOL
-    // This silently checks the network for a longer chain every 5 seconds
-    setInterval(async () => {
-        try {
-            const response = await fetch('/nodes/resolve');
-            const data = await response.json();
-            
-            // If the server tells us it found a longer chain and replaced ours
-            if (data.message && data.message.includes('replaced')) {
-                console.log("🚨 ALERT: Longer chain detected on the network. Ledger auto-synced!");
-                
-                // Optional: Pop up an alert or refresh the page so the admin sees it
-                // alert("Network Sync: A new block was mined by another node and downloaded to your ledger.");
-                // location.reload(); 
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        let resultsChart;
+
+        async function fetchResults() {
+            try {
+                const response = await fetch('/api/live_results');
+                if (!response.ok) return;
+                const data = await response.json();
+
+                const candidates = Object.keys(data);
+                const votes = Object.values(data);
+
+                if (!resultsChart) {
+                    const ctx = document.getElementById('resultsChart').getContext('2d');
+                    resultsChart = new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: candidates,
+                            datasets: [{
+                                label: 'Votes Cast',
+                                data: votes,
+                                backgroundColor: ['#2563eb', '#10b981', '#f43f5e', '#f59e0b', '#06b6d4', '#8b5cf6'],
+                                borderRadius: 12,
+                                borderWidth: 0
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: true,
+                            plugins: {
+                                legend: { display: false }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    ticks: { stepSize: 1, font: { weight: 'bold' } },
+                                    grid: { color: 'rgba(0,0,0,0.05)' }
+                                },
+                                x: {
+                                    grid: { display: false },
+                                    ticks: { font: { weight: 'bold' } }
+                                }
+                            },
+                            animation: { duration: 500 }
+                        }
+                    });
+                } else {
+                    resultsChart.data.labels = candidates;
+                    resultsChart.data.datasets[0].data = votes;
+                    resultsChart.update();
+                }
+            } catch (error) {
+                console.error("Error fetching live results:", error);
             }
-        } catch (error) {
-            console.error("Auto-sync ping failed (Network might be asleep).", error);
         }
-    }, 5000); // 5000 milliseconds = 5 seconds
-</script>
-</body>
-</html>
+
+        // 🔄 THE AUTO-SYNC GOSSIP PROTOCOL
+        setInterval(async () => {
+            try {
+                const response = await fetch('/nodes/resolve');
+                const data = await response.json();
+                if (data.message && data.message.includes('replaced')) {
+                    console.log("🚨 ALERT: Longer chain detected on the network. Ledger auto-synced!");
+                }
+            } catch (error) {
+                console.error("Auto-sync ping failed.", error);
+            }
+        }, 5000);
+
+        fetchResults();
+        setInterval(fetchResults, 3000);
+    </script>
+    {% endblock %}

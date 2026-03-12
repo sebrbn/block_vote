@@ -1,51 +1,83 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Vote Mined Successfully</title>
-    <style>
-        body { font-family: sans-serif; text-align: center; padding: 50px; background-color: #f9fff9; }
-        .success-box { 
-            border: 2px solid #28a745; 
-            background: white; 
-            padding: 30px; 
-            border-radius: 10px; 
-            display: inline-block; 
-            max-width: 600px;
-            box-shadow: 0px 5px 15px rgba(0,0,0,0.1);
-        }
-        h1 { color: #28a745; margin-bottom: 10px; }
-        .details { text-align: left; background: #eee; padding: 15px; border-radius: 5px; font-family: monospace; margin-top: 20px; word-break: break-all; }
-        .btn {
-            display: inline-block;
-            margin-top: 20px;
-            padding: 10px 20px;
-            background: #007bff;
-            color: white;
-            text-decoration: none;
-            border-radius: 5px;
-        }
-        .btn:hover { background: #0056b3; }
-    </style>
-</head>
-<body>
+{% extends "base.html" %}
 
-    <div class="success-box">
-        <h1> Vote Mined & Confirmed!</h1>
-        <p>Your anonymous vote has been cryptographically signed and added to the blockchain.</p>
-        
-        <div class="details">
-            <p><strong>Block Index:</strong> {{ block.index }}</p>
-            <p><strong>Nonce Found:</strong> {{ block.nonce }}</p>
-            <p><strong>Previous Hash:</strong> {{ block.previous_hash }}</p>
-            <p><strong>Timestamp:</strong> {{ block.timestamp }}</p>
-        </div>
+{% block title %}BlockVote | Vote Success{% endblock %}
 
-        <br>
-        <p style="color: #d9534f; font-weight: bold;">
-    🔒 Your cryptographic token has been consumed. You may not vote again.
-</p>
-        <a href="/logout" class="btn" style="background:#dc3545;">Logout</a>
+{% block content %}
+<main class="max-w-4xl mx-auto px-4 py-12 w-full text-center">
+    <!-- Header Animation Placeholder -->
+    <div
+        class="mb-12 inline-flex items-center justify-center p-10 bg-emerald-50 rounded-full border border-emerald-100 shadow-xl shadow-emerald-500/10">
+        <svg class="w-20 h-20 text-emerald-600" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+            <path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path>
+        </svg>
     </div>
 
-</body>
-</html>
+    <h1 class="text-4xl font-black text-slate-900 italic tracking-tighter mb-4">Ballot Successfully Mined</h1>
+    <p class="text-slate-500 text-sm font-medium max-w-lg mx-auto leading-relaxed">
+        Your vote has been cryptographically secured and appended to the distributed ledger. It is now immutable and
+        permanent.
+    </p>
+
+    <!-- Block Details -->
+    <section class="mt-16 bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden">
+        <div class="px-8 py-6 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+            <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Distributed Ledger Artifacts
+            </h3>
+            <span
+                class="bg-emerald-100 text-emerald-700 text-[10px] font-bold px-3 py-1 rounded-xl border border-emerald-200 uppercase tracking-widest">Verified
+                Integrity</span>
+        </div>
+
+        <div class="p-10 space-y-10">
+            <!-- Block Hash -->
+            <div class="text-left">
+                <label
+                    class="block text-[10px] font-black text-brand-primary uppercase tracking-widest mb-3">Immutability
+                    Pointer (Previous Hash)</label>
+                <code
+                    class="block w-full p-6 bg-slate-50 rounded-2xl border border-slate-200 text-[11px] font-mono text-slate-600 break-all leading-relaxed shadow-inner">
+                    {{ block.previous_hash }}
+                </code>
+            </div>
+
+            <!-- Block Data Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="bg-white p-8 rounded-2xl border border-slate-100 text-left shadow-sm">
+                    <span class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Block
+                        Height</span>
+                    <span class="text-2xl font-black text-slate-900 tracking-tight italic">#{{ block.index }}</span>
+                </div>
+                <div class="bg-white p-8 rounded-2xl border border-slate-100 text-left shadow-sm">
+                    <span class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Proof of
+                        Work (Nonce)</span>
+                    <span class="text-2xl font-black text-slate-900 tracking-tight">{{ block.proof }}</span>
+                </div>
+            </div>
+
+            <div class="pt-8 border-t border-slate-100 flex flex-col sm:flex-row gap-4">
+                <a href="/logout"
+                    class="flex-1 bg-brand-primary hover:bg-brand-secondary text-white py-4 px-6 rounded-2xl font-black shadow-xl shadow-blue-500/10 transition-all active:scale-95 uppercase tracking-widest text-[11px]">
+                    1. Secure Portal Exit
+                </a>
+                <a href="/explorer"
+                    class="flex-1 bg-white hover:bg-slate-50 text-slate-600 py-4 px-6 rounded-2xl font-black border border-slate-200 transition-all active:scale-95 uppercase tracking-widest text-[11px] shadow-sm">
+                    2. Verify on Explorer
+                </a>
+            </div>
+        </div>
+
+        <div class="px-8 py-5 bg-slate-50/50 flex items-center justify-center gap-4">
+            <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+                <path
+                    d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                    stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"></path>
+            </svg>
+            <p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Protocol: BlockVote v2.1.0 •
+                SHA-256 Validated</p>
+        </div>
+    </section>
+
+    <p class="mt-12 text-[10px] text-slate-400 font-bold italic uppercase tracking-widest">Thank you for participating
+        in decentralized democracy.</p>
+</main>
+{% endblock %}

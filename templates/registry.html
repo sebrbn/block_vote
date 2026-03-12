@@ -1,94 +1,166 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Live Voter Registry</title>
-    <style>
-        body { font-family: sans-serif; padding: 40px; background-color: #f8f9fa; }
-        .container { max-width: 600px; margin: auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
-        h2 { text-align: center; color: #333; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
-        th { background-color: #007bff; color: white; }
-        .status-true { color: #28a745; font-weight: bold; }
-        .status-false { color: #dc3545; font-weight: bold; }
-        .empty { text-align: center; color: #777; font-style: italic; padding: 20px; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h2>📋 Live Voter Registry (Audit Log)</h2>
-        <p style="text-align: center; color: #666;">This portal is restricted to internal network access.</p>
-        
-        <table>
-            <thead>
-                <tr>
-                    <th>Student UID</th>
-                    <th>Vote Status</th>
-                </tr>
-            </thead>
-            <tbody>
+{% extends "base.html" %}
+
+{% block title %}BlockVote | Voter Registry Audit{% endblock %}
+
+{% block nav %}
+<div class="flex items-center gap-4">
+    <a href="/admin"
+        class="text-[10px] font-black text-brand-primary hover:text-white transition-all uppercase tracking-widest px-5 py-2.5 border border-brand-primary/10 rounded-2xl bg-brand-primary/5 shadow-lg shadow-blue-500/5 hover:bg-brand-primary transition-all active:scale-95">Admin
+        Console</a>
+</div>
+{% endblock %}
+
+{% block content %}
+<main class="container mx-auto px-4 py-12 w-full max-w-5xl">
+    <!-- Registry Header -->
+    <header class="mb-12 text-center group">
+        <h1
+            class="text-4xl font-black text-slate-900 tracking-tighter italic mb-4 transition-transform group-hover:scale-105">
+            Qualified Voter Registry</h1>
+        <p class="text-slate-400 text-[10px] font-black uppercase tracking-[0.3em] font-bold">Real-time audit log of
+            authenticated student UIDs and their voting status.</p>
+        <div
+            class="mt-6 flex justify-center gap-1.5 grayscale opacity-40 group-hover:grayscale-0 group-hover:opacity-100 transition-all">
+            <span class="w-1.5 h-1.5 rounded-full bg-brand-primary"></span>
+            <span class="w-1.5 h-1.5 rounded-full bg-slate-200"></span>
+            <span class="w-1.5 h-1.5 rounded-full bg-slate-200"></span>
+        </div>
+    </header>
+
+    <!-- Stats Overview -->
+    <section class="grid grid-cols-1 sm:grid-cols-3 gap-8 mb-16">
+        <div
+            class="bg-white p-10 rounded-3xl shadow-2xl border border-slate-100 relative overflow-hidden group hover:border-brand-primary/30 transition-all">
+            <div class="absolute top-0 left-0 w-full h-1 bg-slate-100/50"></div>
+            <p class="text-slate-400 text-[9px] font-black uppercase tracking-widest mb-2 flex items-center gap-2">
+                <span class="w-1 h-2.5 bg-slate-200 rounded-full"></span>
+                Total Registered
+            </p>
+            <p class="text-4xl font-black text-slate-900 italic tracking-tighter">{{ database|length if database else 0
+                }}</p>
+        </div>
+        <div
+            class="bg-white p-10 rounded-3xl shadow-2xl border border-slate-100 relative overflow-hidden group hover:border-emerald-500/30 transition-all">
+            <div class="absolute top-0 left-0 w-full h-1 bg-emerald-500/10"></div>
+            <p class="text-slate-400 text-[9px] font-black uppercase tracking-widest mb-2 flex items-center gap-2">
+                <span class="w-1 h-2.5 bg-emerald-500 rounded-full"></span>
+                Votes Recorded
+            </p>
+            <p class="text-4xl font-black text-emerald-600 italic tracking-tighter">
+                {% set voted_count = 0 %}
                 {% if database %}
-                    {% for uid, data in database.items() %}
+                {% for uid, data in database.items() if data.voted %}{% set voted_count = voted_count + 1 %}{% endfor %}
+                {% endif %}
+                {{ voted_count }}
+            </p>
+        </div>
+        <div
+            class="bg-white p-10 rounded-3xl shadow-2xl border border-slate-100 relative overflow-hidden group hover:border-brand-primary/30 transition-all">
+            <div class="absolute top-0 left-0 w-full h-1 bg-brand-primary/10"></div>
+            <p class="text-slate-400 text-[9px] font-black uppercase tracking-widest mb-2 flex items-center gap-2">
+                <span class="w-1 h-2.5 bg-brand-primary rounded-full"></span>
+                Pending Sessions
+            </p>
+            <p class="text-4xl font-black text-brand-primary italic tracking-tighter">
+                {% if database %}{{ database|length - voted_count }}{% else %}0{% endif %}
+            </p>
+        </div>
+    </section>
+
+    <!-- Registry Table -->
+    <section class="bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden">
+        <div class="p-10 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+            <h3 class="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em] italic">Database Snapshot</h3>
+            <div class="flex items-center gap-4 bg-white px-4 py-2 rounded-xl border border-slate-100 shadow-sm">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest">Live Audit Active</span>
+            </div>
+        </div>
+
+        <div class="overflow-x-auto min-h-[400px]">
+            <table class="w-full text-left">
+                <thead
+                    class="bg-slate-50/80 text-slate-400 text-[10px] uppercase font-black tracking-widest border-b border-slate-100">
                     <tr>
-                        <td><strong>{{ uid }}</strong></td>
-                        <td>
+                        <th class="px-10 py-7">Student UID</th>
+                        <th class="px-10 py-7">Authorization Artifact</th>
+                        <th class="px-10 py-7 text-right">Ballot Status</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-50">
+                    {% if database %}
+                    {% for uid, data in database.items() %}
+                    <tr class="hover:bg-brand-primary/5 transition-all group">
+                        <td class="px-10 py-7">
+                            <span
+                                class="text-sm font-black text-slate-900 group-hover:text-brand-primary transition-colors italic tracking-tighter">{{
+                                uid }}</span>
+                        </td>
+                        <td class="px-10 py-7">
                             {% if data.voted %}
-                                <span class="status-true">✅ Voted (Locked)</span>
+                            <div class="flex items-center gap-4 text-emerald-600">
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+                                    <path
+                                        d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.954 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+                                        stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"></path>
+                                </svg>
+                                <span
+                                    class="text-[10px] font-mono font-black uppercase tracking-tighter">RSA_SIGNED_MINTED_VOTER</span>
+                            </div>
                             {% else %}
-                                <span class="status-false">⏳ Pending</span>
+                            <div class="flex items-center gap-4 text-slate-300">
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+                                    <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round"
+                                        stroke-linejoin="round" stroke-width="2"></path>
+                                </svg>
+                                <span
+                                    class="text-[10px] font-mono uppercase tracking-tighter font-bold">NULL_WAIT_AUTH</span>
+                            </div>
+                            {% endif %}
+                        </td>
+                        <td class="px-10 py-7 text-right">
+                            {% if data.voted %}
+                            <span
+                                class="bg-emerald-50 text-emerald-600 text-[10px] font-black px-5 py-2 rounded-xl border border-emerald-100 uppercase tracking-widest shadow-xl shadow-emerald-500/5 transition-transform group-hover:scale-105 inline-block">✅
+                                Ballot Cast</span>
+                            {% else %}
+                            <span
+                                class="bg-slate-50 text-slate-400 text-[10px] font-black px-5 py-2 rounded-xl border border-slate-100 uppercase tracking-widest opacity-60">⏳
+                                Pending Auth</span>
                             {% endif %}
                         </td>
                     </tr>
                     {% endfor %}
-                {% else %}
+                    {% else %}
                     <tr>
-                        <td colspan="2" class="empty">No students have logged in yet.</td>
+                        <td colspan="3" class="px-10 py-32 text-center">
+                            <div class="flex flex-col items-center justify-center opacity-50">
+                                <div
+                                    class="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-6 border border-slate-100 shadow-inner">
+                                    <svg class="h-10 w-10 text-slate-200" fill="none" stroke="currentColor"
+                                        viewbox="0 0 24 24">
+                                        <path
+                                            d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"
+                                            stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"></path>
+                                    </svg>
+                                </div>
+                                <p
+                                    class="text-[11px] font-black text-slate-400 uppercase tracking-widest italic tracking-widest">
+                                    No voter sessions recorded in primary vault.</p>
+                            </div>
+                        </td>
                     </tr>
-                {% endif %}
-            </tbody>
-            
-        </table>
-        <table>
-            <thead>
-    <tr>
-        <th>Student UID</th>
-        <th>Admin Authorization</th> <th>Vote Status</th>
-    </tr>
-</thead>
-
-<tbody>
-    {% if database %}
-        {% for uid, data in database.items() %}
-        <tr>
-            <td><strong>{{ uid }}</strong></td>
-            <td>
-                {% if data.voted %}
-                    <span style="color: #007bff;">🔏 Blind Signature Applied</span>
-                {% else %}
-                    <span style="color: #666;">⏳ Awaiting Auth</span>
-                {% endif %}
-            </td>
-            <td>
-                {% if data.voted %}
-                    <span class="status-true">✅ Voted (Locked)</span>
-                {% else %}
-                    <span class="status-false">⏳ Pending</span>
-                {% endif %}
-            </td>
-        </tr>
-        {% endfor %}
-    {% else %}
-        <tr>
-            <td colspan="3" class="empty">No students have logged in yet.</td>
-        </tr>
-    {% endif %}
-</tbody>
-        </table>
-        
-        
-        <div style="text-align: center; margin-top: 30px;">
-            <a href="/admin" style="text-decoration: none; color: #007bff; font-weight: bold;">← Back to Admin Console</a>
+                    {% endif %}
+                </tbody>
+            </table>
         </div>
-    </div>
-</body>
-</html>
+    </section>
+
+    <footer class="mt-16 text-center border-t border-slate-100 pt-12">
+        <p class="text-[9px] text-slate-300 font-bold uppercase tracking-[0.5em] mb-2 font-mono">Persistent Vault Audit
+            Persistence Protocol v2.1.0</p>
+        <p class="text-[8px] text-slate-400 font-black uppercase tracking-widest">Election Cycle Hash:
+            5bc208d6c7e2dcec268fed03...</p>
+    </footer>
+</main>
+{% endblock %}
