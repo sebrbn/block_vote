@@ -401,11 +401,12 @@ def admin_page():
         submitted_count=len(submitted_shares), 
         active=is_election_active,
         candidates=candidates_list,
-        error=None,
+        error=error,
         sig_requests=pending_signature_requests,
         database=student_db,
         nodes=list(vote_chain.nodes),
-        shares=submitted_shares
+        shares=submitted_shares,
+        stored_secret_hash=stored_secret_hash
     )
 
 @app.route('/admin/sign_ballot/<user_id>', methods=['POST'])
@@ -557,6 +558,16 @@ def consensus():
     else:
         response = {'message': 'Our chain is authoritative (already up to date).', 'chain': vote_chain.chain}
     return response, 200
+
+@app.route('/election/state', methods=['GET'])
+def get_election_state():
+    """Returns the current global election configuration for P2P syncing."""
+    return jsonify({
+        "is_active": is_election_active,
+        "candidates": candidates_list,
+        "secret_hash": stored_secret_hash,
+        "shares": list(submitted_shares)  # Convert set of tuples to list for JSON
+    }), 200
 
 @app.route('/nodes/ping', methods=['GET'])
 def node_ping():
