@@ -33,8 +33,8 @@
     </header>
 
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-12">
-        <!-- Node Registration -->
-        <div class="lg:col-span-5">
+        <!-- Node Management -->
+        <div class="lg:col-span-12 xl:col-span-5 space-y-8">
             <section
                 class="bg-white p-10 rounded-3xl shadow-2xl border border-slate-100 relative group overflow-hidden">
                 <div
@@ -44,262 +44,265 @@
                 <h3 class="text-xl font-black text-slate-900 mb-8 italic tracking-tight flex items-center gap-4">
                     <svg class="h-6 w-6 text-brand-primary" fill="none" stroke="currentColor" viewbox="0 0 24 24">
                         <path
-                            d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+                            d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.247 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
                             stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"></path>
                     </svg>
-                    Register Peer Node
+                    Node Management
                 </h3>
 
-                <form action="/register_node" method="POST" class="space-y-8 relative">
+                <form action="javascript:void(0);" onsubmit="registerNode()" class="space-y-6 relative">
                     <div>
                         <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 ml-1"
-                            for="nodes">Peer Endpoint (URL)</label>
+                            for="node_url">Manual Peer Endpoint</label>
                         <input
-                            class="w-full px-5 py-5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-brand-primary outline-none transition-all placeholder:text-slate-300 text-sm font-bold text-slate-900 shadow-inner font-mono"
-                            id="nodes" name="nodes" placeholder="http://192.168.1.100:5001" required type="text" />
-                        <p
-                            class="mt-3 text-[9px] text-slate-400 font-bold uppercase tracking-widest italic ml-1 opacity-60">
-                            e.g. Local IP or Public URI</p>
-                    </div>
-
-                    <div class="bg-blue-50/50 p-6 rounded-2xl border border-blue-100">
-                        <p class="text-[10px] text-slate-500 leading-relaxed font-bold">
-                            <strong class="text-slate-900 block mb-2 uppercase tracking-widest">Handshake
-                                Notice:</strong>
-                            Nodes do not auto-discover. Manual registration is required to establish decentralized
-                            consensus.
-                        </p>
+                            class="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-brand-primary outline-none transition-all placeholder:text-slate-300 text-sm font-bold text-slate-900 shadow-inner font-mono"
+                            id="node_url" name="nodes" placeholder="http://192.168.1.100:5001" required type="text" />
                     </div>
 
                     <button
-                        class="w-full py-5 bg-brand-primary hover:bg-brand-secondary text-white font-black rounded-2xl transition-all shadow-2xl shadow-blue-500/10 uppercase tracking-widest text-[11px] active:scale-[0.98] group/btn"
+                        class="w-full py-4 bg-brand-primary hover:bg-brand-secondary text-white font-black rounded-2xl transition-all shadow-xl shadow-blue-500/10 uppercase tracking-widest text-[10px] active:scale-[0.98] group/btn"
                         type="submit">
-                        Synchronize Mesh Peer
-                        <svg class="inline w-4 h-4 ml-2 group-hover/btn:rotate-12 transition-transform" fill="none"
+                        Synchronize Peer
+                        <svg class="inline w-3 h-3 ml-2 group-hover/btn:rotate-12 transition-transform" fill="none"
                             stroke="currentColor" viewbox="0 0 24 24">
                             <path
                                 d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
                                 stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"></path>
                         </svg>
                     </button>
+
+                    <div class="relative py-4">
+                        <div class="absolute inset-0 flex items-center" aria-hidden="true">
+                            <div class="w-full border-t border-slate-100"></div>
+                        </div>
+                        <div class="relative flex justify-center text-[8px] uppercase font-black tracking-widest">
+                            <span class="bg-white px-4 text-slate-400">Or Autonomous Discovery</span>
+                        </div>
+                    </div>
+
+                    <button onclick="discoverPeers()"
+                        class="w-full py-4 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 font-black rounded-2xl transition-all border border-indigo-100 uppercase tracking-widest text-[10px] active:scale-[0.98] flex items-center justify-center gap-3"
+                        type="button" id="discover_btn">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+                            <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-linecap="round"
+                                stroke-linejoin="round" stroke-width="2.5"></path>
+                        </svg>
+                        Scan Local Subnet
+                    </button>
+
+                    <div id="output"
+                        class="mt-4 p-4 text-[9px] font-mono text-slate-500 bg-slate-50 rounded-xl border border-slate-100 hidden break-all">
+                    </div>
                 </form>
             </section>
+
+            <div class="bg-blue-50/50 p-8 rounded-3xl border border-blue-100">
+                <p class="text-[10px] text-slate-500 leading-relaxed font-bold">
+                    <strong class="text-slate-900 block mb-2 uppercase tracking-widest">P2P Discovery Notice:</strong>
+                    Scanning detects nodes on the current Wi-Fi subnet. This process may take 10-15 seconds depending on
+                    network load.
+                </p>
+            </div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-12">
-            <!-- Node Registration -->
-            <div class="lg:col-span-5">
-                <section
-                    class="bg-white p-10 rounded-3xl shadow-2xl border border-slate-100 relative group overflow-hidden">
-                    <div
-                        class="absolute top-0 right-0 w-32 h-32 bg-brand-primary/5 rounded-full blur-3xl -mr-16 -mt-16 transition-transform group-hover:scale-110">
-                    </div>
-
-                    <h3 class="text-xl font-black text-slate-900 mb-8 italic tracking-tight flex items-center gap-4">
-                        <svg class="h-6 w-6 text-brand-primary" fill="none" stroke="currentColor" viewbox="0 0 24 24">
-                            <path
-                                d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
-                                stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"></path>
-                        </svg>
-                        Register Peer Node
+        <!-- Node List -->
+        <div class="lg:col-span-12 xl:col-span-7">
+            <section
+                class="bg-white rounded-3xl border border-slate-100 shadow-2xl overflow-hidden flex flex-col h-full">
+                <div class="p-8 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+                    <h3 class="text-xs font-black text-slate-900 uppercase tracking-widest italic">Connected Topology
                     </h3>
+                    <span
+                        class="bg-emerald-100 text-emerald-700 text-[9px] font-black px-4 py-1.5 rounded-full uppercase font-mono shadow-sm tracking-widest border border-emerald-200">{{
+                        nodes|length if nodes else 1 }} Nodes Map</span>
+                </div>
 
-                    <form action="javascript:void(0);" onsubmit="registerNode()" class="space-y-8 relative">
-                        <div>
-                            <label
-                                class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 ml-1"
-                                for="node_url">Peer Endpoint (URL)</label>
-                            <input
-                                class="w-full px-5 py-5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-brand-primary outline-none transition-all placeholder:text-slate-300 text-sm font-bold text-slate-900 shadow-inner font-mono"
-                                id="node_url" name="nodes" placeholder="http://192.168.1.100:5001" required
-                                type="text" />
-                            <p
-                                class="mt-3 text-[9px] text-slate-400 font-bold uppercase tracking-widest italic ml-1 opacity-60">
-                                e.g. Local IP or Public URI</p>
-                        </div>
-
-                        <div class="bg-blue-50/50 p-6 rounded-2xl border border-blue-100">
-                            <p class="text-[10px] text-slate-500 leading-relaxed font-bold">
-                                <strong class="text-slate-900 block mb-2 uppercase tracking-widest">Handshake
-                                    Notice:</strong>
-                                Nodes do not auto-discover. Manual registration is required to establish decentralized
-                                consensus.
-                            </p>
-                        </div>
-
-                        <button
-                            class="w-full py-5 bg-brand-primary hover:bg-brand-secondary text-white font-black rounded-2xl transition-all shadow-2xl shadow-blue-500/10 uppercase tracking-widest text-[11px] active:scale-[0.98] group/btn"
-                            type="submit">
-                            Synchronize Mesh Peer
-                            <svg class="inline w-4 h-4 ml-2 group-hover/btn:rotate-12 transition-transform" fill="none"
-                                stroke="currentColor" viewbox="0 0 24 24">
-                                <path
-                                    d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 00(5.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
-                                    stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"></path>
-                            </svg>
-                        </button>
-
-                        <div id="output"
-                            class="mt-4 p-4 text-[9px] font-mono text-slate-500 bg-slate-50 rounded-xl border border-slate-100 hidden break-all">
-                        </div>
-                    </form>
-                </section>
-            </div>
-
-            <!-- Node List -->
-            <div class="lg:col-span-7">
-                <section
-                    class="bg-white rounded-3xl border border-slate-100 shadow-2xl overflow-hidden flex flex-col h-full">
-                    <div class="p-8 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
-                        <h3 class="text-xs font-black text-slate-900 uppercase tracking-widest italic">Connected
-                            Topology
-                        </h3>
-                        <span
-                            class="bg-emerald-100 text-emerald-700 text-[9px] font-black px-4 py-1.5 rounded-full uppercase font-mono shadow-sm tracking-widest border border-emerald-200">{{
-                            nodes|length if nodes else 1 }} Nodes Map</span>
-                    </div>
-
-                    <div class="p-10 flex-1 overflow-y-auto max-h-[500px] custom-scrollbar">
-                        <div class="space-y-6" id="node_list">
-                            <!-- Current Node -->
-                            <div
-                                class="p-6 bg-brand-primary/5 rounded-3xl border border-brand-primary/10 flex items-center justify-between shadow-sm relative group">
-                                <div class="flex items-center gap-6">
-                                    <div
-                                        class="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-brand-primary shadow-sm border border-brand-primary/20 transition-transform group-hover:scale-110">
-                                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewbox="0 0 24 24">
-                                            <path d="M12 6v6m0 0v6m0-6h6m-6 0H6" stroke-linecap="round"
-                                                stroke-linejoin="round" stroke-width="3"></path>
-                                        </svg>
-                                    </div>
-                                    <div>
-                                        <p
-                                            class="text-[9px] font-black text-brand-primary uppercase tracking-[0.2em] mb-1">
-                                            Local Host (Origin)</p>
-                                        <p class="text-sm font-mono text-slate-900 font-bold italic tracking-tighter">
-                                            Self-Loop Entry Point</p>
-                                    </div>
-                                </div>
-                                <span
-                                    class="bg-emerald-50 text-emerald-600 text-[9px] font-black px-3 py-1 rounded-xl border border-emerald-100 uppercase tracking-widest">Primary</span>
-                            </div>
-
-                            {% if nodes %}
-                            {% for node in nodes %}
-                            <div
-                                class="p-6 bg-slate-50/50 rounded-3xl border border-slate-100 flex items-center justify-between shadow-sm group hover:border-brand-primary/30 transition-all">
-                                <div class="flex items-center gap-6">
-                                    <div
-                                        class="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-slate-300 group-hover:text-brand-primary transition-all shadow-sm border border-slate-100 group-hover:border-brand-primary/20">
-                                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewbox="0 0 24 24">
-                                            <path
-                                                d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A10.003 10.003 0 0110 11V7a4 4 0 00-8 0v4c0 1.556.354 3.03 1 4.355m9.188 2.393A10.003 10.003 0 0012 15V3m0 12c1.74 0 3.342.466 4.717 1.275l.057.034"
-                                                stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5">
-                                            </path>
-                                        </svg>
-                                    </div>
-                                    <div>
-                                        <p class="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">
-                                            Mined Peer Protocol</p>
-                                        <p class="text-sm font-mono text-slate-900 font-bold italic tracking-tighter">{{
-                                            node }}</p>
-                                    </div>
-                                </div>
-                                <div class="flex items-center gap-4">
-                                    <span
-                                        class="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-lg shadow-emerald-500/20"></span>
-                                    <span
-                                        class="text-[9px] font-black text-slate-400 uppercase tracking-widest italic">Linked</span>
-                                </div>
-                            </div>
-                            {% endfor %}
-                            {% else %}
-                            <!-- Empty Peer List -->
-                            <div class="py-20 text-center opacity-60">
+                <div class="p-10 flex-1 overflow-y-auto max-h-[500px] custom-scrollbar">
+                    <div class="space-y-6" id="node_list">
+                        <!-- Current Node -->
+                        <div
+                            class="p-6 bg-brand-primary/5 rounded-3xl border border-brand-primary/10 flex items-center justify-between shadow-sm relative group">
+                            <div class="flex items-center gap-6">
                                 <div
-                                    class="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6 border border-slate-100 shadow-inner">
-                                    <svg class="w-10 h-10 text-slate-200" fill="none" stroke="currentColor"
-                                        viewbox="0 0 24 24">
+                                    class="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-brand-primary shadow-sm border border-brand-primary/20 transition-transform group-hover:scale-110">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+                                        <path d="M12 6v6m0 0v6m0-6h6m-6 0H6" stroke-linecap="round"
+                                            stroke-linejoin="round" stroke-width="3"></path>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <p class="text-[9px] font-black text-brand-primary uppercase tracking-[0.2em] mb-1">
+                                        Local Host (Origin)</p>
+                                    <p class="text-sm font-mono text-slate-900 font-bold italic tracking-tighter">
+                                        Self-Loop Entry Point</p>
+                                </div>
+                            </div>
+                            <span
+                                class="bg-emerald-50 text-emerald-600 text-[9px] font-black px-3 py-1 rounded-xl border border-emerald-100 uppercase tracking-widest">Primary</span>
+                        </div>
+
+                        {% if nodes %}
+                        {% for node in nodes %}
+                        <div
+                            class="p-6 bg-slate-50/50 rounded-3xl border border-slate-100 flex items-center justify-between shadow-sm group hover:border-brand-primary/30 transition-all">
+                            <div class="flex items-center gap-6">
+                                <div
+                                    class="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-slate-300 group-hover:text-brand-primary transition-all shadow-sm border border-slate-100 group-hover:border-brand-primary/20">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewbox="0 0 24 24">
                                         <path
-                                            d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 00-5.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+                                            d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A10.003 10.003 0 0110 11V7a4 4 0 00-8 0v4c0 1.556.354 3.03 1 4.355m9.188 2.393A10.003 10.003 0 0012 15V3m0 12c1.74 0 3.342.466 4.717 1.275l.057.034"
                                             stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"></path>
                                     </svg>
                                 </div>
-                                <p
-                                    class="text-[11px] font-black text-slate-400 uppercase tracking-widest italic tracking-widest">
-                                    No mesh peers detected. Cluster is isolated.</p>
+                                <div>
+                                    <p class="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">
+                                        Mined Peer Protocol</p>
+                                    <p class="text-sm font-mono text-slate-900 font-bold italic tracking-tighter">{{
+                                        node }}</p>
+                                </div>
                             </div>
-                            {% endif %}
+                            <div class="flex items-center gap-4">
+                                <span
+                                    class="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-lg shadow-emerald-500/20"></span>
+                                <span
+                                    class="text-[9px] font-black text-slate-400 uppercase tracking-widest italic">Linked</span>
+                            </div>
                         </div>
+                        {% endfor %}
+                        {% else %}
+                        <!-- Empty Peer List -->
+                        <div class="py-20 text-center opacity-60">
+                            <div
+                                class="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6 border border-slate-100 shadow-inner">
+                                <svg class="w-10 h-10 text-slate-200" fill="none" stroke="currentColor"
+                                    viewbox="0 0 24 24">
+                                    <path
+                                        d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+                                        stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"></path>
+                                </svg>
+                            </div>
+                            <p
+                                class="text-[11px] font-black text-slate-400 uppercase tracking-widest italic tracking-widest">
+                                No mesh peers detected. Cluster is isolated.</p>
+                        </div>
+                        {% endif %}
                     </div>
+                </div>
 
-                    <div class="p-8 bg-slate-50/50 border-t border-slate-100 text-center">
-                        <button onclick="syncChain()"
-                            class="w-full py-4 px-6 bg-white border border-slate-200 hover:border-brand-primary text-slate-900 font-black rounded-2xl transition-all shadow-sm active:scale-95 uppercase tracking-widest text-[9px] flex items-center justify-center gap-3 italic"
-                            type="button">
-                            <svg class="w-4 h-4 text-brand-primary" fill="none" stroke="currentColor"
-                                viewbox="0 0 24 24">
-                                <path
-                                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                                    stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path>
-                            </svg>
-                            Force Consensus Synchronize (Longest Chain)
-                        </button>
-                    </div>
-                </section>
-            </div>
+                <div class="p-8 bg-slate-50/50 border-t border-slate-100 text-center">
+                    <button onclick="syncChain()"
+                        class="w-full py-4 px-6 bg-white border border-slate-200 hover:border-brand-primary text-slate-900 font-black rounded-2xl transition-all shadow-sm active:scale-95 uppercase tracking-widest text-[9px] flex items-center justify-center gap-3 italic"
+                        type="button">
+                        <svg class="w-4 h-4 text-brand-primary" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+                            <path
+                                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                                stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path>
+                        </svg>
+                        Force Consensus Synchronize (Longest Chain)
+                    </button>
+                </div>
+            </section>
         </div>
+    </div>
 
-        <script>
-            async function registerNode() {
-                const nodeUrl = document.getElementById('node_url').value;
-                const outputBox = document.getElementById('output');
+    <script>
+        async function registerNode() {
+            const nodeUrl = document.getElementById('node_url').value;
+            const outputBox = document.getElementById('output');
 
-                if (!nodeUrl) return;
+            if (!nodeUrl) return;
 
-                outputBox.classList.remove('hidden');
-                outputBox.innerText = "⏳ Connecting node...";
+            outputBox.classList.remove('hidden');
+            outputBox.innerText = "⏳ Connecting node...";
 
-                try {
-                    const response = await fetch('/nodes/register', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ nodes: [nodeUrl] })
-                    });
-                    const data = await response.json();
-                    outputBox.innerText = "✅ " + data.message;
-                    setTimeout(() => location.reload(), 1000);
-                } catch (error) {
-                    outputBox.innerText = "❌ Error: " + error;
-                }
+            try {
+                const response = await fetch('/nodes/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nodes: [nodeUrl] })
+                });
+                const data = await response.json();
+                outputBox.innerText = "✅ " + data.message;
+                setTimeout(() => location.reload(), 1000);
+            } catch (error) {
+                outputBox.innerText = "❌ Error: " + error;
             }
+        }
 
-            async function syncChain() {
-                const outputBox = document.getElementById('output');
-                outputBox.classList.remove('hidden');
-                outputBox.innerText = "🔄 Syncing ledger with mesh topography...";
+        async function discoverPeers() {
+            const outputBox = document.getElementById('output');
+            const btn = document.getElementById('discover_btn');
 
-                try {
-                    const response = await fetch('/nodes/resolve');
-                    const data = await response.json();
-                    outputBox.innerText = "🌐 Network Consensus: " + data.message;
-                } catch (error) {
-                    outputBox.innerText = "❌ Sync Failed: " + error;
+            outputBox.classList.remove('hidden');
+            outputBox.innerText = "🚀 Scanning local subnet for BlockVote instances...";
+            btn.disabled = true;
+            btn.classList.add('opacity-50');
+
+            try {
+                const response = await fetch('/nodes/discover');
+                const data = await response.json();
+                outputBox.innerText = "🔍 Discovery complete: " + data.message;
+                if (data.discovered_count > 0) {
+                    setTimeout(() => location.reload(), 2000);
+                } else {
+                    btn.disabled = false;
+                    btn.classList.remove('opacity-50');
                 }
+            } catch (error) {
+                outputBox.innerText = "❌ Discovery failed: " + error;
+                btn.disabled = false;
+                btn.classList.remove('opacity-50');
             }
+        }
 
-            // 🔄 THE AUTO-SYNC GOSSIP PROTOCOL
-            setInterval(async () => {
-                try {
-                    const response = await fetch('/nodes/resolve');
-                    const data = await response.json();
-                    if (data.message && data.message.includes('replaced')) {
-                        console.log("🚨 AUTO-SYNC: Mesh network update detected.");
-                    }
-                } catch (error) {
-                    console.error("Auto-sync ping failed.", error);
+        async function syncChain() {
+            const outputBox = document.getElementById('output');
+            outputBox.classList.remove('hidden');
+            outputBox.innerText = "🔄 Syncing ledger and election state with mesh topology...";
+
+            try {
+                // 1. Sync Blockchain
+                const blockResp = await fetch('/nodes/resolve');
+                const blockData = await blockResp.json();
+
+                // 2. Sync Election State (Candidates, Shares, etc.)
+                const stateResp = await fetch('/nodes/state/sync');
+                const stateData = await stateResp.json();
+
+                let msg = "🌐 Network Consensus: " + blockData.message;
+                if (stateData.sync_occurred) {
+                    msg += " | Election state updated!";
                 }
-            }, 5000); 
-        </script>
+                outputBox.innerText = msg;
+
+                // Reload if state change was significant (e.g. election unlocked)
+                if (stateData.active) {
+                    setTimeout(() => location.reload(), 1500);
+                }
+            } catch (error) {
+                outputBox.innerText = "❌ Sync Failed: " + error;
+            }
+        }
+
+        // 🔄 THE AUTO-SYNC GOSSIP PROTOCOL
+        setInterval(async () => {
+            try {
+                // Background Sync blockchain
+                await fetch('/nodes/resolve');
+
+                // Background Sync state
+                const resp = await fetch('/nodes/state/sync');
+                const data = await resp.json();
+
+                if (data.sync_occurred) {
+                    console.log("🚨 AUTO-SYNC: Mesh network election state update detected.");
+                    // Optional: auto-reload if election status changed to active
+                    if (data.active) location.reload();
+                }
+            } catch (error) {
+                console.error("Auto-sync ping failed.", error);
+            }
+        }, 5000); 
+    </script>
 </main>
 {% endblock %}

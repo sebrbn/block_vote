@@ -10,6 +10,7 @@ import hashlib    # For Cryptographic Hashing
 import secrets    # For generating high-entropy dynamic keys
 import re
 import ipaddress
+import requests
 from flask import jsonify
 
 # IMPORT YOUR EXISTING ALGORITHMS
@@ -559,6 +560,125 @@ def consensus():
     else:
         response = {'message': 'Our chain is authoritative (already up to date).', 'chain': vote_chain.chain}
     return response, 200
+
+@app.route('/election/state', methods=['GET'])
+def get_election_state():
+    """Returns the current global election configuration for P2P syncing."""
+    return jsonify({
+        "is_active": is_election_active,
+        "candidates": candidates_list,
+        "secret_hash": stored_secret_hash,
+        "shares": list(submitted_shares)  # Convert set of tuples to list for JSON
+    }), 200
+
+@app.route('/nodes/state/sync', methods=['GET'])
+def sync_election_state():
+    """Pulls election configuration from peers and merges it into local memory."""
+    global candidates_list, submitted_shares, stored_secret_hash, is_election_active
+    
+    sync_occurred = False
+    
+    for node in vote_chain.nodes:
+        try:
+            resp = requests.get(f"http://{node}/election/state", timeout=2)
+            if resp.status_code == 200:
+                data = resp.json()
+                
+                # 1. Merge Candidates
+                for peer_candidate in data.get('candidates', []):
+                    if peer_candidate not in candidates_list:
+                        candidates_list.append(peer_candidate)
+                        sync_occurred = True
+                
+                # 2. Sync Secret Hash (only if we don't have one)
+                if not stored_secret_hash and data.get('secret_hash'):
+                    stored_secret_hash = data.get('secret_hash')
+                    sync_occurred = True
+                
+                # 3. Merge Shares
+                for peer_share in data.get('shares', []):
+                    # peer_share will be a list [x, y], convert back to tuple for set
+                    share_tuple = tuple(peer_share)
+                    if share_tuple not in submitted_shares:
+                        submitted_shares.add(share_tuple)
+                        sync_occurred = True
+        except:
+            continue
+
+    # 4. Auto-Unlock Check
+    if not is_election_active and len(submitted_shares) >= 3 and stored_secret_hash:
+        try:
+            # Attempt reconstruction to verify local integrity
+            shares_list = list(submitted_shares)[:3]
+            recovered_secret = shamir_secret_sharing.reconstruct_secret(shares_list)
+            if hashlib.sha256(str(recovered_secret).encode()).hexdigest() == stored_secret_hash:
+                is_election_active = True
+                sync_occurred = True
+        except:
+            pass
+
+    return jsonify({
+        "message": "State sync complete",
+        "sync_occurred": sync_occurred,
+        "active": is_election_active,
+        "shares_count": len(submitted_shares)
+    }), 200
+
+@app.route('/nodes/discover', methods=['GET'])
+def discover_peers():
+    """Autonomous P2P Discovery: Scans the local /24 subnet for other BlockVote nodes."""
+    import socket
+    import threading
+    
+    discovered_nodes = []
+    
+    # Identify local IP and subnet
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        local_ip = s.getsockname()[0]
+        s.close()
+    except Exception:
+        local_ip = "127.0.0.1"
+
+    if local_ip == "127.0.0.1":
+        return {"message": "Could not identify local network for scanning.", "discovered_count": 0}, 400
+
+    ip_prefix = ".".join(local_ip.split('.')[:-1]) + "."
+    current_port = request.host.split(':')[-1] if ':' in request.host else '5000'
+    
+    def scan_ip(offset):
+        target_ip = f"{ip_prefix}{offset}"
+        if target_ip == local_ip:
+            return
+        
+        target_url = f"http://{target_ip}:{current_port}"
+        try:
+            # We check if the node is a BlockVote instance by hitting /chain
+            resp = requests.get(f"{target_url}/chain", timeout=0.1)
+            if resp.status_code == 200:
+                discovered_nodes.append(target_url)
+                vote_chain.register_node(target_url)
+        except:
+            pass
+
+    threads = []
+    for i in range(1, 255):
+        t = threading.Thread(target=scan_ip, args=(i,))
+        t.start()
+        threads.append(t)
+
+    for t in threads:
+        t.join()
+
+    if discovered_nodes:
+        return {
+            "message": f"Discovery complete. Found {len(discovered_nodes)} peers: {', '.join(discovered_nodes)}",
+            "discovered_count": len(discovered_nodes),
+            "nodes": discovered_nodes
+        }, 200
+    
+    return {"message": "No new mesh peers found on local subnet.", "discovered_count": 0}, 200
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
