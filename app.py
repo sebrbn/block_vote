@@ -13,6 +13,7 @@ import ipaddress
 import requests
 from flask import jsonify
 import smtplib
+import os
 from email.mime.text import MIMEText
 
 # IMPORT YOUR EXISTING ALGORITHMS
@@ -43,10 +44,22 @@ signed_blinded_votes = {}       # { user_id: admin_signature }
 admin_notifications = []
 
 # --- SMTP2GO CONFIGURATION ---
+# 🛡️ Securely loading from .env or environment
+def load_env():
+    env_path = os.path.join(os.path.dirname(__file__), '.env')
+    if os.path.exists(env_path):
+        with open(env_path, 'r') as f:
+            for line in f:
+                if '=' in line and not line.startswith('#'):
+                    key, value = line.strip().split('=', 1)
+                    os.environ[key] = value.strip('"').strip("'")
+
+load_env()
+
 SMTP_SERVER = "mail.smtp2go.com"
 SMTP_PORT = 587
-SMTP_USER = "admin@rajagiri.edu.in"
-SMTP_PASS = "L3bEbBvn0owIkZaa"
+SMTP_USER = os.getenv("SMTP_USER")
+SMTP_PASS = os.getenv("SMTP_PASS")
 
 def send_otp_email(receiver_id, otp):
     """Sends a real OTP email via SMTP2GO"""
