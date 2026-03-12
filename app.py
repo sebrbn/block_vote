@@ -12,6 +12,8 @@ import re
 import ipaddress
 import requests
 from flask import jsonify
+import smtplib
+from email.mime.text import MIMEText
 
 # IMPORT YOUR EXISTING ALGORITHMS
 import vote_token_generator
@@ -39,6 +41,31 @@ pending_signature_requests = {} # { user_id: blinded_message }
 signed_blinded_votes = {}       # { user_id: admin_signature }
 # Global list to hold live admin notifications for the dashboard
 admin_notifications = []
+
+# --- SMTP2GO CONFIGURATION ---
+SMTP_SERVER = "mail.smtp2go.com"
+SMTP_PORT = 587
+SMTP_USER = "admin@rajagiri.edu.in"
+SMTP_PASS = "L3bEbBvn0owIkZaa"
+
+def send_otp_email(receiver_id, otp):
+    """Sends a real OTP email via SMTP2GO"""
+    receiver_email = f"{receiver_id.lower()}@rajagiri.edu.in"
+    msg = MIMEText(f"Your BlockVote Authentication OTP is: {otp}\n\nThis code is required for secure ballot access. Do not share it.")
+    msg['Subject'] = 'BlockVote | Secure OTP Challenge'
+    msg['From'] = f"BlockVote Secure Portal <{SMTP_USER}>"
+    msg['To'] = receiver_email
+
+    try:
+        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+            server.starttls()
+            server.login(SMTP_USER, SMTP_PASS)
+            server.send_message(msg)
+        print(f"📧 [GOSSIP] Real email sent to {receiver_email}")
+        return True
+    except Exception as e:
+        print(f"❌ SMTP ERROR: Failed to send email to {receiver_email}: {e}")
+        return False
 
 # ----------------------------------------------------------------
 # 1. AUTHENTICATION ROUTES (OTP SYSTEM)
@@ -79,11 +106,14 @@ def send_otp():
     session['temp_user_id'] = user_id
     otp_storage[user_id] = otp
     
-    print(f"\n{'='*40}")
-    print(f"📧 [EMAIL SENT] OTP for {user_id} is >> {otp} <<")
-    print(f"{'='*40}\n")
+    # 4. Attempt Real Email Send
+    email_success = send_otp_email(user_id, otp)
     
-    return render_template('login.html', otp_sent=True)
+    # 5. Fallback for Debugging (still print to terminal if email fails)
+    if not email_success:
+        print(f"\n⚠️ SMTP FALLBACK: OTP for {user_id} is >> {otp} <<")
+    
+    return render_template('login.html', otp_sent=True, email_status=email_success)
 
 @app.route('/verify_otp', methods=['POST'])
 def verify_otp():
