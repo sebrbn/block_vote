@@ -567,7 +567,8 @@ def get_election_state():
         "is_active": is_election_active,
         "candidates": candidates_list,
         "secret_hash": stored_secret_hash,
-        "shares": list(submitted_shares)  # Convert set of tuples to list for JSON
+        "shares": list(submitted_shares),
+        "registry": student_db
     }), 200
 
 @app.route('/nodes/ping', methods=['GET'])
@@ -578,7 +579,7 @@ def node_ping():
 @app.route('/nodes/state/sync', methods=['GET'])
 def sync_election_state():
     """Pulls election configuration from peers and merges it into local memory."""
-    global candidates_list, submitted_shares, stored_secret_hash, is_election_active
+    global candidates_list, submitted_shares, stored_secret_hash, is_election_active, student_db
     
     sync_occurred = False
     dead_nodes = []
@@ -608,6 +609,20 @@ def sync_election_state():
                         submitted_shares.add(share_tuple)
                         sync_occurred = True
                         print(f"📥 GOSSIP: Synchronized new share {share_tuple} from {node}")
+                
+                # 4. Merge Voter Registry (student_db)
+                peer_registry = data.get('registry', {})
+                for uid, info in peer_registry.items():
+                    if uid not in student_db:
+                        student_db[uid] = info
+                        sync_occurred = True
+                        print(f"📥 GOSSIP: Registered new voter {uid} from {node}")
+                    else:
+                        # If peer says they voted, we must believe it (strictly additive security)
+                        if info.get('voted') and not student_db[uid].get('voted'):
+                            student_db[uid]['voted'] = True
+                            sync_occurred = True
+                            print(f"📥 GOSSIP: Updated voting status for {uid} from {node}")
             else:
                 dead_nodes.append(node)
         except Exception as e:
