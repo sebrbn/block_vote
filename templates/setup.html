@@ -23,6 +23,30 @@
             </div>
         </header>
 
+        {% if stored_secret_hash and not generated %}
+        <div
+            class="mb-12 p-6 bg-indigo-50 border-l-4 border-indigo-500 rounded-2xl flex items-center justify-between shadow-sm animate-pulse">
+            <div class="flex items-center gap-4">
+                <div class="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                            d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                    </svg>
+                </div>
+                <div>
+                    <h4 class="text-xs font-black text-indigo-900 uppercase tracking-widest">Mesh Protocol Alert:
+                        Election Setup Detected</h4>
+                    <p class="text-[10px] text-indigo-600 font-bold">A Master Key has been generated elsewhere on the
+                        network. Waiting for shares.</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="w-2 h-2 bg-indigo-500 rounded-full animate-ping"></span>
+                <span class="text-[8px] font-black text-indigo-500 uppercase tracking-[0.2em]">Listening...</span>
+            </div>
+        </div>
+        {% endif %}
+
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-stretch">
             <!-- Share Submission Card -->
             <section

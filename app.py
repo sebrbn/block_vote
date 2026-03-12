@@ -275,7 +275,7 @@ def setup_page():
     except ValueError:
         pass # Failsafe for weird IP formats
 
-    return render_template('setup.html', generated=generated_shares, shares=submitted_shares, active=is_election_active)
+    return render_template('setup.html', generated=generated_shares, shares=submitted_shares, active=is_election_active, stored_secret_hash=stored_secret_hash)
 
 @app.route('/results')
 def voter_results():

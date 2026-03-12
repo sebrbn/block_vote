@@ -45,8 +45,11 @@
                 <span class="w-1 h-3 bg-brand-primary rounded-full"></span>
                 Active Mesh Nodes
             </p>
-            <p class="text-3xl font-black text-slate-900 italic tracking-tighter">{{ nodes|length if nodes else 1 }}</p>
+            <p class="text-3xl font-black text-slate-900 italic tracking-tighter">{{ nodes|length + 1 }}</p>
             <div class="mt-4 flex flex-wrap gap-2">
+                <span
+                    class="px-2 py-1 bg-indigo-50 text-indigo-700 text-[8px] font-black rounded-lg border border-indigo-100 uppercase tracking-tighter">Local
+                    Node</span>
                 {% for node in nodes %}
                 <span
                     class="px-2 py-1 bg-emerald-50 text-emerald-700 text-[8px] font-black rounded-lg border border-emerald-100 uppercase tracking-tighter">{{
