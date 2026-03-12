@@ -46,9 +46,20 @@
                 Active Mesh Nodes
             </p>
             <p class="text-3xl font-black text-slate-900 italic tracking-tighter">{{ nodes|length if nodes else 1 }}</p>
-            <div class="mt-5 flex items-center text-[10px] text-slate-400 font-black uppercase tracking-widest italic">
-                <span class="w-2 h-2 rounded-full bg-emerald-500 mr-2.5"></span>
-                P2P Link Secured
+            <div class="mt-4 flex flex-wrap gap-2">
+                {% for node in nodes %}
+                <span
+                    class="px-2 py-1 bg-emerald-50 text-emerald-700 text-[8px] font-black rounded-lg border border-emerald-100 uppercase tracking-tighter">{{
+                    node }}</span>
+                {% endfor %}
+            </div>
+            <div class="mt-5 flex items-center justify-between">
+                <div class="flex items-center text-[10px] text-slate-400 font-black uppercase tracking-widest italic">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 mr-2.5"></span>
+                    P2P Link Secured
+                </div>
+                <button onclick="manualSync()"
+                    class="text-[9px] font-black text-brand-primary uppercase hover:underline">Force Sync</button>
             </div>
         </div>
         <div class="bg-white p-8 rounded-3xl border border-slate-100 shadow-xl shadow-slate-200/50">
@@ -318,35 +329,58 @@
         }
     }
 
-    // 🔄 THE AUTO-SYNC GOSSIP PROTOCOL
+    async function manualSync() {
+        const btn = event ? event.target : document.querySelector('button[onclick="manualSync()"]');
+        const originalText = btn.innerText;
+        btn.innerText = "🔄 Syncing...";
+        btn.disabled = true;
+
+        try {
+            await fetch('/nodes/resolve');
+            const resp = await fetch('/nodes/state/sync');
+            const data = await resp.json();
+
+            if (data.sync_occurred) {
+                location.reload();
+            } else {
+                btn.innerText = "✅ Up to Date";
+                setTimeout(() => {
+                    btn.innerText = originalText;
+                    btn.disabled = false;
+                }, 2000);
+            }
+        } catch (err) {
+            btn.innerText = "❌ Failed";
+            setTimeout(() => {
+                btn.innerText = originalText;
+                btn.disabled = false;
+            }, 2000);
+        }
+    }
+
+    // 🔄 Consolidated Gossip Protocol
     setInterval(async () => {
         try {
-            const response = await fetch('/nodes/resolve');
-            const data = await response.json();
-            if (data.message && data.message.includes('replaced')) {
-                console.log("🚨 ALERT: Longer chain detected on the network. Ledger auto-synced!");
+            // 1. Sync Ledger
+            const resolveResp = await fetch('/nodes/resolve');
+            const resolveData = await resolveResp.json();
+            if (resolveData.message && resolveData.message.includes('replaced')) {
+                console.log("🚨 LEDGER UPDATED: Synced latest blocks.");
+            }
+
+            // 2. Sync Election State
+            const stateResp = await fetch('/nodes/state/sync');
+            const stateData = await stateResp.json();
+            if (stateData.sync_occurred) {
+                console.log("🚨 STATE UPDATED: P2P Mesh synchronization event.");
+                location.reload();
             }
         } catch (error) {
-            console.error("Auto-sync ping failed.", error);
+            console.error("Gossip Sync failed.", error);
         }
     }, 5000);
 
     fetchResults();
     setInterval(fetchResults, 3000);
-    // 🔄 Mesh Topology Gossip Protocol
-    setInterval(async () => {
-        try {
-            // Background Sync state
-            const resp = await fetch('/nodes/state/sync');
-            const data = await resp.json();
-
-            if (data.sync_occurred) {
-                console.log("🚨 AUTO-SYNC: Mesh network updated.");
-                location.reload();
-            }
-        } catch (error) {
-            console.error("Auto-sync failed.", error);
-        }
-    }, 5000); 
 </script>
 {% endblock %}

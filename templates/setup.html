@@ -170,6 +170,24 @@
                 </div>
             </section>
         </div>
+
+        <script>
+            // 🔄 Trusted Setup Gossip Protocol
+            // Keeps reconstruction status updated in real-time
+            setInterval(async () => {
+                try {
+                    const resp = await fetch('/nodes/state/sync');
+                    const data = await resp.json();
+
+                    if (data.sync_occurred) {
+                        console.log("🚨 CEREMONY UPDATE: Peer share detected.");
+                        location.reload();
+                    }
+                } catch (error) {
+                    console.error("Ceremony sync failed.", error);
+                }
+            }, 5000); 
+        </script>
     </div>
 </main>
 {% endblock %}

@@ -460,7 +460,8 @@ def submit_share():
         return redirect(url_for('admin_page'))
         
     share_input = request.form.get('share_input')
-    client_ip = request.remote_addr  # Grab the device's IP address
+    # Use consistent client_ip logic (handling proxies if necessary)
+    client_ip = request.headers.get('X-Forwarded-For', request.remote_addr).split(',')[0].strip()
     
     try:
         parsed_share = ast.literal_eval(share_input)
@@ -582,9 +583,10 @@ def sync_election_state():
     sync_occurred = False
     dead_nodes = []
     
-    for node in list(vote_chain.nodes): # Use list() to allow removal during iteration
+    for node in list(vote_chain.nodes):
         try:
-            resp = requests.get(f"http://{node}/election/state", timeout=1.5)
+            # Increased timeout to 3s for slower local networks
+            resp = requests.get(f"http://{node}/election/state", timeout=3.0)
             if resp.status_code == 200:
                 data = resp.json()
                 
@@ -605,16 +607,18 @@ def sync_election_state():
                     if share_tuple not in submitted_shares:
                         submitted_shares.add(share_tuple)
                         sync_occurred = True
+                        print(f"📥 GOSSIP: Synchronized new share {share_tuple} from {node}")
             else:
                 dead_nodes.append(node)
-        except:
+        except Exception as e:
+            print(f"⚠️ Sync failed for node {node}: {e}")
             dead_nodes.append(node)
 
     # Clean up dead nodes from the chain's node list
     for node in dead_nodes:
         if node in vote_chain.nodes:
             vote_chain.nodes.remove(node)
-            print(f"🗑️ Pruned dead node from mesh: {node}")
+            print(f"🗑️ Pruned dead node from mesh (timeout or 404): {node}")
 
     # 4. Auto-Unlock Check
     if not is_election_active and len(submitted_shares) >= 3 and stored_secret_hash:
