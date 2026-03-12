@@ -296,8 +296,7 @@
 
                 if (data.sync_occurred) {
                     console.log("🚨 AUTO-SYNC: Mesh network election state update detected.");
-                    // Optional: auto-reload if election status changed to active
-                    if (data.active) location.reload();
+                    location.reload();
                 }
             } catch (error) {
                 console.error("Auto-sync ping failed.", error);

@@ -371,6 +371,7 @@ def admin_login():
 @app.route('/admin')
 def admin_page():
     """Renders the live election console"""
+    error = request.args.get('error')
     
     # Grabs the real public IP from Ngrok, or falls back to the normal IP if Ngrok isn't used
     client_ip = request.headers.get('X-Forwarded-For', request.remote_addr).split(',')[0].strip()
@@ -495,16 +496,12 @@ def submit_share():
                     error_msg = "Critical Error: Key reconstruction failed hash verification."
                     
     except Exception as e:
-        error_msg = "Invalid input! Please paste the exact tuple format."
+        error_msg = f"Invalid input! Error: {e}"
 
-    return render_template(
-        'admin.html', 
-        submitted_count=len(submitted_shares), 
-        active=is_election_active,
-        error=error_msg,
-        candidates=candidates_list, # Make sure candidates are passed too!
-        pending_requests=pending_signature_requests
-    )
+    if error_msg:
+        return redirect(url_for('admin_page', error=error_msg))
+    
+    return redirect(url_for('admin_page'))
 
 # ----------------------------------------------------------------
 # 5. BLOCKCHAIN EXPLORER
@@ -561,15 +558,10 @@ def consensus():
         response = {'message': 'Our chain is authoritative (already up to date).', 'chain': vote_chain.chain}
     return response, 200
 
-@app.route('/election/state', methods=['GET'])
-def get_election_state():
-    """Returns the current global election configuration for P2P syncing."""
-    return jsonify({
-        "is_active": is_election_active,
-        "candidates": candidates_list,
-        "secret_hash": stored_secret_hash,
-        "shares": list(submitted_shares)  # Convert set of tuples to list for JSON
-    }), 200
+@app.route('/nodes/ping', methods=['GET'])
+def node_ping():
+    """Simple health check endpoint for P2P neighbors."""
+    return jsonify({"status": "online", "timestamp": time.time()}), 200
 
 @app.route('/nodes/state/sync', methods=['GET'])
 def sync_election_state():
@@ -577,10 +569,11 @@ def sync_election_state():
     global candidates_list, submitted_shares, stored_secret_hash, is_election_active
     
     sync_occurred = False
+    dead_nodes = []
     
-    for node in vote_chain.nodes:
+    for node in list(vote_chain.nodes): # Use list() to allow removal during iteration
         try:
-            resp = requests.get(f"http://{node}/election/state", timeout=2)
+            resp = requests.get(f"http://{node}/election/state", timeout=1.5)
             if resp.status_code == 200:
                 data = resp.json()
                 
@@ -597,13 +590,20 @@ def sync_election_state():
                 
                 # 3. Merge Shares
                 for peer_share in data.get('shares', []):
-                    # peer_share will be a list [x, y], convert back to tuple for set
                     share_tuple = tuple(peer_share)
                     if share_tuple not in submitted_shares:
                         submitted_shares.add(share_tuple)
                         sync_occurred = True
+            else:
+                dead_nodes.append(node)
         except:
-            continue
+            dead_nodes.append(node)
+
+    # Clean up dead nodes from the chain's node list
+    for node in dead_nodes:
+        if node in vote_chain.nodes:
+            vote_chain.nodes.remove(node)
+            print(f"🗑️ Pruned dead node from mesh: {node}")
 
     # 4. Auto-Unlock Check
     if not is_election_active and len(submitted_shares) >= 3 and stored_secret_hash:

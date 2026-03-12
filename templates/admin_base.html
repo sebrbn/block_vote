@@ -118,6 +118,57 @@ animation: pulse-animation 2s infinite;
     </header>
 
     <div class="flex-1 overflow-y-auto p-10 custom-scrollbar bg-slate-50/50">
+        <!-- Dynamic Alerts Container -->
+        <div class="max-w-6xl mx-auto space-y-6 mb-10">
+            {% if request.args.get('error') %}
+            <div
+                class="p-6 bg-red-50 border border-red-100 rounded-3xl flex items-center gap-5 shadow-sm animate-pulse">
+                <div
+                    class="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-red-500 shadow-sm border border-red-100">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z">
+                        </path>
+                    </svg>
+                </div>
+                <div>
+                    <p class="text-[10px] font-black text-red-400 uppercase tracking-widest mb-1">Critical Exception</p>
+                    <p class="text-xs font-bold text-red-900 italic tracking-tight">{{ request.args.get('error') }}</p>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if not active and stored_secret_hash %}
+            <div
+                class="p-6 bg-indigo-50 border border-indigo-100 rounded-3xl flex items-center justify-between shadow-sm border-l-4 border-l-indigo-500">
+                <div class="flex items-center gap-5">
+                    <div
+                        class="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-indigo-500 shadow-sm border border-indigo-100">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1">
+                            </path>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1">Mesh Protocol
+                            Alert</p>
+                        <p class="text-xs font-bold text-indigo-900 italic tracking-tight">Election Setup Detected.
+                            Waiting for key reconstruction shares from mesh peers.</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3 bg-white/50 px-4 py-2 rounded-xl border border-indigo-100">
+                    <span class="relative flex h-2 w-2">
+                        <span
+                            class="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
+                    </span>
+                    <span class="text-[9px] font-black text-indigo-600 uppercase tracking-widest">Listening...</span>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
         {% block admin_content %}{% endblock %}
     </div>
 
